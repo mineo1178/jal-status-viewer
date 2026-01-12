@@ -1,10 +1,10 @@
-<!-- gv4.20 - GitHub Raw Auto Load Edition -->
+<!-- gv4.30 - GitHub Raw Auto Sync + Debug JSON (Single-file Complete) -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>JAL Status & Flight Manager (GitHub Raw)</title>
+  <title>JAL Status Viewer gv4.30</title>
 
   <!-- Dependencies -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -15,488 +15,590 @@
   <style>
     :root { --jal-red:#E10009; }
     body { background:#f1f5f9; }
-    canvas { max-height: 320px; }
-    .loading-overlay { position:fixed; inset:0; background:rgba(255,255,255,.9); z-index:1000; display:none; align-items:center; justify-content:center; flex-direction:column; }
-    .spinner { border:4px solid #f3f3f3; border-top:4px solid var(--jal-red); border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite; }
-    @keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
-    .tab-content { display:none; }
-    .tab-content.active { display:block; }
-    .nav-item.active { background:var(--jal-red); color:#fff; }
-    .table-container { max-height: 60vh; overflow:auto; }
+    .sidebar { width: 260px; }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; }
+    .btn { display:inline-flex; align-items:center; gap:.5rem; padding:.55rem .9rem; border-radius:.75rem; font-weight:800; font-size:.85rem; }
+    .btn-red { background:var(--jal-red); color:#fff; }
+    .btn-red:hover { filter:brightness(.95); }
+    .btn-slate { background:#0f172a; color:#fff; }
+    .btn-slate:hover { filter:brightness(1.08); }
+    .btn-outline { border:1px solid #cbd5e1; background:#fff; color:#0f172a; }
+    .btn-outline:hover { background:#f8fafc; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    pre { white-space: pre-wrap; word-break: break-word; }
+    .badge { font-size:.75rem; font-weight:900; padding:.2rem .55rem; border-radius:999px; }
+    .badge-ok { background:#dcfce7; color:#166534; }
+    .badge-ng { background:#fee2e2; color:#991b1b; }
+    .badge-warn { background:#ffedd5; color:#9a3412; }
   </style>
 </head>
 
-<body class="h-screen flex flex-col overflow-hidden">
-
-  <!-- Loading -->
-  <div id="loadingOverlay" class="loading-overlay">
-    <div class="spinner mb-4"></div>
-    <p id="loadingText" class="font-bold text-slate-700">読み込み中...</p>
-    <p id="loadingSub" class="text-xs text-slate-500 mt-1"></p>
-  </div>
-
-  <!-- Top bar -->
-  <header class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between">
+<body class="h-screen overflow-hidden">
+  <!-- Top Bar -->
+  <header class="h-14 bg-slate-900 text-white flex items-center justify-between px-4">
     <div class="flex items-center gap-3">
-      <i class="fa-solid fa-plane text-red-500"></i>
-      <span class="font-extrabold tracking-tight">JAL Status Viewer</span>
-      <span class="text-xs text-slate-300">gv4.20</span>
+      <i class="fa-solid fa-plane text-[var(--jal-red)]"></i>
+      <div class="font-black tracking-tight">JAL Status Viewer <span class="ml-2 text-slate-300 font-extrabold">gv4.30</span></div>
     </div>
-
     <div class="flex items-center gap-2">
-      <button id="btnSync" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2">
+      <button id="btnSync" class="btn btn-red">
         <i class="fa-solid fa-rotate"></i> 自動URLから同期
       </button>
 
-      <label class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg text-xs font-bold cursor-pointer flex items-center gap-2">
-        <i class="fa-solid fa-file-excel"></i> ローカルExcel
-        <input type="file" id="fileInput" class="hidden" accept=".xlsx,.csv">
+      <label class="btn btn-outline cursor-pointer">
+        <i class="fa-solid fa-file-excel text-emerald-600"></i> ローカルExcel
+        <input id="fileInput" type="file" class="hidden" accept=".xlsx,.xls,.csv"/>
       </label>
     </div>
   </header>
 
-  <!-- Main -->
-  <div class="flex-1 flex overflow-hidden">
+  <div class="flex h-[calc(100vh-56px)]">
     <!-- Sidebar -->
-    <aside class="w-56 bg-white border-r p-3 overflow-y-auto">
-      <button class="nav-item w-full text-left px-3 py-2 rounded-lg font-bold text-slate-700 hover:bg-slate-100 active" data-tab="dashboard">
-        <i class="fa-solid fa-gauge-high mr-2"></i> ダッシュボード
-      </button>
-      <button class="nav-item w-full text-left px-3 py-2 rounded-lg font-bold text-slate-700 hover:bg-slate-100 mt-2" data-tab="miles">
-        <i class="fa-solid fa-award mr-2"></i> マイル管理
-      </button>
-      <button class="nav-item w-full text-left px-3 py-2 rounded-lg font-bold text-slate-700 hover:bg-slate-100 mt-2" data-tab="lsp">
-        <i class="fa-solid fa-star mr-2"></i> LSP管理
-      </button>
-      <button class="nav-item w-full text-left px-3 py-2 rounded-lg font-bold text-slate-700 hover:bg-slate-100 mt-2" data-tab="flights">
-        <i class="fa-solid fa-plane-departure mr-2"></i> フライト管理
-      </button>
+    <aside class="sidebar bg-white border-r border-slate-200 p-4 overflow-y-auto">
+      <div class="card p-4">
+        <div class="flex items-center justify-between">
+          <div class="font-black text-slate-800">自動読み込みURL</div>
+          <span id="urlBadge" class="badge badge-warn">未同期</span>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">
+          このURLのExcelを fetch して解析します（GitHub Raw 推奨）。
+        </p>
+        <textarea id="urlInput" class="w-full mt-3 p-3 text-xs rounded-xl border border-slate-200 mono" rows="4"></textarea>
+        <div class="flex gap-2 mt-3">
+          <button id="btnCopyUrl" class="btn btn-outline text-xs">
+            <i class="fa-regular fa-copy"></i> URLコピー
+          </button>
+          <button id="btnTestUrl" class="btn btn-slate text-xs">
+            <i class="fa-solid fa-bug"></i> 接続テスト
+          </button>
+        </div>
+      </div>
 
-      <div class="mt-4 p-3 bg-slate-50 rounded-xl border">
-        <p class="text-xs font-black text-slate-500">自動読み込みURL</p>
-        <p id="excelUrlView" class="text-[11px] text-slate-600 break-all mt-1"></p>
-        <p id="lastSync" class="text-[11px] text-slate-500 mt-2"></p>
+      <div class="card p-4 mt-4">
+        <div class="font-black text-slate-800 mb-2">直近読み込み状況</div>
+        <div id="statusBox" class="text-xs text-slate-700 space-y-1"></div>
       </div>
     </aside>
 
-    <!-- Content -->
-    <main class="flex-1 overflow-y-auto p-4 md:p-6">
+    <!-- Main -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <!-- Stats -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="card p-4">
+          <div class="text-[10px] font-black text-slate-400 tracking-widest">MILES</div>
+          <div id="statMiles" class="text-3xl font-black text-slate-800 mt-2">0</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-[10px] font-black text-slate-400 tracking-widest">LSP</div>
+          <div id="statLsp" class="text-3xl font-black text-slate-800 mt-2">0</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-[10px] font-black text-slate-400 tracking-widest">FOP (THIS YEAR)</div>
+          <div id="statFop" class="text-3xl font-black text-slate-800 mt-2">0</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-[10px] font-black text-slate-400 tracking-widest">FLIGHTS (THIS YEAR)</div>
+          <div id="statFlights" class="text-3xl font-black text-slate-800 mt-2">0</div>
+        </div>
+      </div>
 
-      <!-- Dashboard -->
-      <section id="tab-dashboard" class="tab-content active space-y-4">
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div class="bg-white rounded-xl border p-4">
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Miles</p>
-            <p class="text-2xl font-black text-slate-800" id="stat-miles">0</p>
+      <!-- Charts -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+        <div class="card p-4">
+          <div class="font-black text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie text-[var(--jal-red)]"></i> マイル内訳（簡易）
           </div>
-          <div class="bg-white rounded-xl border p-4">
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">LSP</p>
-            <p class="text-2xl font-black text-slate-800" id="stat-lsp">0</p>
+          <div class="h-64 mt-3"><canvas id="milePie"></canvas></div>
+        </div>
+        <div class="card p-4">
+          <div class="font-black text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie text-blue-600"></i> LSP内訳（簡易）
           </div>
-          <div class="bg-white rounded-xl border p-4">
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">FOP (This year)</p>
-            <p class="text-2xl font-black text-slate-800" id="stat-fop">0</p>
+          <div class="h-64 mt-3"><canvas id="lspPie"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Debug JSON -->
+      <div class="card p-4 mt-4">
+        <div class="flex items-center justify-between">
+          <div class="font-black text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-code text-slate-700"></i> Debug JSON
           </div>
-          <div class="bg-white rounded-xl border p-4">
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Flights (This year)</p>
-            <p class="text-2xl font-black text-slate-800" id="stat-yearly-flights">0</p>
+          <div class="flex gap-2">
+            <button id="btnCopyDebug" class="btn btn-outline text-xs">
+              <i class="fa-regular fa-copy"></i> Debugコピー
+            </button>
+            <button id="btnClearDebug" class="btn btn-outline text-xs">
+              <i class="fa-regular fa-trash-can"></i> クリア
+            </button>
           </div>
         </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div class="bg-white rounded-xl border p-4">
-            <h3 class="font-black text-slate-800 text-sm mb-2"><i class="fa-solid fa-chart-pie text-red-500 mr-2"></i>マイル内訳（簡易）</h3>
-            <div class="h-56"><canvas id="milePieChart"></canvas></div>
-          </div>
-          <div class="bg-white rounded-xl border p-4">
-            <h3 class="font-black text-slate-800 text-sm mb-2"><i class="fa-solid fa-chart-pie text-blue-500 mr-2"></i>LSP内訳（簡易）</h3>
-            <div class="h-56"><canvas id="lspPieChart"></canvas></div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-xl border p-4">
-          <h3 class="font-black text-slate-800 text-sm mb-2"><i class="fa-solid fa-list mr-2 text-slate-700"></i>直近読み込み状況</h3>
-          <pre id="debugInfo" class="text-[11px] bg-slate-50 border rounded-lg p-3 overflow-x-auto"></pre>
-        </div>
-      </section>
-
-      <!-- Detail -->
-      <section id="tab-detail" class="tab-content space-y-4">
-        <div class="bg-white rounded-xl border overflow-hidden">
-          <div class="p-3 border-b flex items-center justify-between">
-            <h3 id="detailTitle" class="font-black text-slate-800 text-sm">明細</h3>
-            <select id="categorySelector" class="text-xs border rounded-lg px-2 py-1"></select>
-          </div>
-          <div class="table-container">
-            <table class="w-full text-left border-collapse">
-              <thead class="sticky top-0 bg-white z-10 border-b">
-                <tr class="text-[11px] uppercase text-slate-400 font-black">
-                  <th class="p-3">日付</th>
-                  <th class="p-3">内容</th>
-                  <th class="p-3 text-right">値</th>
-                </tr>
-              </thead>
-              <tbody id="table-body" class="divide-y text-xs"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
+        <pre id="debugJson" class="mono text-xs mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl min-h-[160px]"></pre>
+        <p class="text-xs text-slate-500 mt-2">
+          ここが空のままなら、読み込み処理が走っていない or 途中で例外停止しています。必ず理由が出る設計です。
+        </p>
+      </div>
     </main>
   </div>
 
 <script>
 /**
- * gv4.20 - GitHub Raw Auto Load Edition
- * - GitHub Raw URLからExcelを自動取得してSheetJSで解析
- * - ローカルExcel読み込みも残す
+ * gv4.30
+ * - GitHub Raw URLのExcelを自動取得
+ * - 失敗しても必ず Debug JSON と status に出す
+ * - ローカルExcelも引き続き読める
  */
 
-// ★あなたのURL（ここが今回の肝）
-const EXCEL_URL = "https://github.com/mineo1178/jal-status-viewer/raw/refs/heads/main/data/20251229_LSP%E7%AE%A1%E7%90%86.xlsx";
+// ✅ 推奨：raw.githubusercontent.com 形式（安定）
+const DEFAULT_AUTO_URL =
+  "https://raw.githubusercontent.com/mineo1178/jal-status-viewer/main/data/20251229_LSP%E7%AE%A1%E7%90%86.xlsx";
 
-document.getElementById("excelUrlView").innerText = EXCEL_URL;
+let charts = { milePie: null, lspPie: null };
 
-let appData = {
-  plans: [],
-  lsp: [],
-  miles: [],
-  stats: { miles: 0, lsp: 0, fop: 0, yearlyFlights: 0, plannedFlights: 0 }
+const appData = {
+  miles: [], // {date, content, gain, total, fop, flight_count, ui_category}
+  lsp: [],   // {date, category, service, content, points, total, ui_category}
+  plans: [], // {date, from, to, flightNo, depTime, arrTime, status, airline}
+  stats: { miles:0, lsp:0, fop:0, flights:0 }
 };
-let currentTab = "dashboard";
-let charts = {};
 
-function showLoading(msg, sub="") {
-  document.getElementById("loadingText").innerText = msg;
-  document.getElementById("loadingSub").innerText = sub;
-  document.getElementById("loadingOverlay").style.display = "flex";
+const el = (id) => document.getElementById(id);
+
+function nowTime() {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  const ss = String(d.getSeconds()).padStart(2,'0');
+  return `${hh}:${mm}:${ss}`;
 }
-function hideLoading() {
-  document.getElementById("loadingOverlay").style.display = "none";
+
+function pushStatus(msg, kind="info") {
+  const box = el("statusBox");
+  const color = kind==="ok" ? "text-emerald-700" : kind==="ng" ? "text-red-700" : "text-slate-700";
+  const line = document.createElement("div");
+  line.className = `flex gap-2 ${color}`;
+  line.innerHTML = `<span class="font-black w-[54px]">${nowTime()}</span><span class="flex-1">${escapeHtml(msg)}</span>`;
+  box.prepend(line);
 }
-function safeSetText(id, text) {
-  const el = document.getElementById(id);
-  if (el) el.innerText = text;
+
+function setBadge(state) {
+  const b = el("urlBadge");
+  b.classList.remove("badge-ok","badge-ng","badge-warn");
+  if (state==="ok") { b.classList.add("badge-ok"); b.textContent="同期OK"; }
+  else if (state==="ng") { b.classList.add("badge-ng"); b.textContent="同期NG"; }
+  else { b.classList.add("badge-warn"); b.textContent="未同期"; }
+}
+
+function setDebug(obj) {
+  el("debugJson").textContent = JSON.stringify(obj, null, 2);
+}
+
+function clearDebug() {
+  el("debugJson").textContent = "";
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, s => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[s]));
 }
 
 function parseDate(val) {
   if (!val) return "";
-  if (val instanceof Date) return val.toISOString().split("T")[0];
+  // Date object
+  if (val instanceof Date) {
+    return val.toISOString().split("T")[0];
+  }
+  // Excel serial
   if (typeof val === "number") {
-    // Excel serial date
     const d = new Date((val - 25569) * 86400 * 1000);
     return isNaN(d.getTime()) ? "" : d.toISOString().split("T")[0];
   }
-  return String(val).trim().replace(/\//g, "-");
+  // String
+  const s = String(val).trim();
+  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) return s;
+  if (/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(s)) return s.replaceAll("/","-");
+  return s;
+}
+
+// ===== Sheet detection & parsing =====
+function findHeaderRow(rows, keywords) {
+  return rows.findIndex(r =>
+    Array.isArray(r) && r.some(c =>
+      typeof c === "string" && keywords.some(k => c.includes(k))
+    )
+  );
+}
+
+function safeIndexOf(headerRow, colName) {
+  if (!headerRow) return -1;
+  return headerRow.findIndex(c => String(c||"").trim() === colName);
 }
 
 function categorizeMile(content) {
   const c = String(content || "");
-  if (c.match(/[A-Z]{2,3}\d+/) || ["羽田","那覇","福岡","石垣","宮古","成田","伊丹","HND","FUK","OKA","KIX","ITM"].some(k => c.includes(k))) return "フライト";
-  if (c.includes("カード") || c.includes("Club") || c.includes("決済")) return "カード";
-  if (c.includes("Wellness")) return "Wellness";
-  return "その他";
+  if (c.match(/[A-Z]{2,3}\d+/) || ["羽田","那覇","福岡","石垣","宮古","成田","伊丹","HND","FUK","OKA"].some(k => c.includes(k))) return "フライト獲得";
+  if (c.includes("カード") || c.includes("ClubQ") || c.includes("JALカード")) return "JALカード決済";
+  if (c.toLowerCase().includes("wellness")) return "Wellness";
+  return "その他獲得";
 }
 
-function categorizeLsp(category, service) {
-  const cat = String(category || "");
-  const serv = String(service || "");
-  if (cat.includes("航空")) return serv.includes("国内") ? "航空:国内" : "航空:その他";
+function categorizeLSP(category, service) {
+  const cat = String(category||"");
+  const serv = String(service||"");
+  if (cat.includes("航空")) return serv.includes("国内") ? "航空: 国内線" : "航空: その他";
   if (cat.includes("ライフ")) return "ライフスタイル";
-  return "その他";
+  return "その他獲得";
 }
 
 function resetDataKeepStats() {
-  const st = { ...appData.stats };
-  appData = { plans: [], lsp: [], miles: [], stats: st };
+  appData.miles = [];
+  appData.lsp = [];
+  appData.plans = [];
+  appData.stats = { miles:0, lsp:0, fop:0, flights:0 };
 }
 
-function processRows(sheetName, rows) {
-  const findHeader = (keywords) =>
-    rows.findIndex(r => r && r.some(c => typeof c === "string" && keywords.some(k => c.includes(k))));
+function parseWorkbook(wb, rawRowsBySheet) {
+  resetDataKeepStats();
 
-  // LSP
-  if (sheetName.includes("LSP") || findHeader(["積算日"]) !== -1) {
-    const idx = findHeader(["積算日"]);
-    if (idx < 0) return;
-    const header = rows[idx];
-    const col = (name) => header.indexOf(name);
+  // Parse each sheet with flexible header detection
+  wb.SheetNames.forEach(sheetName => {
+    const rows = rawRowsBySheet[sheetName] || [];
+    if (!rows || rows.length === 0) return;
 
-    const cDate = col("積算日");
-    const cCat = col("カテゴリー");
-    const cSvc = col("サービス");
-    const cCnt = col("内容");
-    const cPt  = col("ポイント");
-    const cTot = col("累積ポイント");
+    // LSP
+    let idx = findHeaderRow(rows, ["積算日"]);
+    if (idx !== -1) {
+      const h = rows[idx];
+      const iDate = safeIndexOf(h, "積算日");
+      const iCat  = safeIndexOf(h, "カテゴリー");
+      const iServ = safeIndexOf(h, "サービス");
+      const iCont = safeIndexOf(h, "内容");
+      const iPts  = safeIndexOf(h, "ポイント");
+      const iTot  = safeIndexOf(h, "累積ポイント");
 
-    const body = rows.slice(idx + 1).filter(r => r && r[cDate]);
-    appData.lsp = body.map((r, i) => {
-      const date = parseDate(r[cDate]);
-      const category = r[cCat] ?? "不明";
-      const service = r[cSvc] ?? "不明";
-      const content = r[cCnt] ?? "";
-      const points = parseFloat(r[cPt]) || 0;
-      const total = parseFloat(r[cTot]) || 0;
-      return { _idx:i, date, category, service, content, points, total, ui_category: categorizeLsp(category, service) };
-    }).filter(x => x.date && /^\d{4}/.test(x.date));
-    return;
-  }
+      const body = rows.slice(idx+1).filter(r => r && r[iDate]);
+      appData.lsp = body.map((r, k) => {
+        const date = parseDate(r[iDate]);
+        const category = r[iCat] ?? "不明";
+        const service  = r[iServ] ?? "不明";
+        const content  = r[iCont] ?? "";
+        const points   = Number(r[iPts]) || 0;
+        const total    = Number(r[iTot]) || 0;
+        return {
+          _idx:k, date, category, service, content, points, total,
+          ui_category: categorizeLSP(category, service)
+        };
+      }).filter(x => /^\d{4}/.test(x.date));
+      return;
+    }
 
-  // Miles
-  if (sheetName.includes("マイル") || findHeader(["有効マイル"]) !== -1) {
-    const idx = findHeader(["有効マイル"]);
-    if (idx < 0) return;
-    const header = rows[idx];
+    // Miles
+    idx = findHeaderRow(rows, ["有効マイル"]);
+    if (idx !== -1) {
+      const h = rows[idx];
 
-    // 互換のため固定列も見る
-    const body = rows.slice(idx + 1).filter(r => r && r[0]);
-    appData.miles = body.map((r, i) => {
-      const date = parseDate(r[0]);
-      const content = r[1] ?? "";
-      const gain = parseInt(r[7]) || 0;
-      const total = parseInt(r[8]) || 0;
-      const fop = parseInt(r[9]) || 0;
-      const flight_count = parseInt(r[10]) || 0;
-      return { _idx:i, date, content, gain, total, fop, flight_count, ui_category: categorizeMile(content) };
-    }).filter(x => x.date && /^\d{4}/.test(x.date));
-    return;
-  }
+      // よくある配置（あなたの旧版に合わせる）
+      // A:日付 B:内容 ... H:獲得 I:有効(合計) J:FOP K:搭乗回数
+      const body = rows.slice(idx+1).filter(r => r && r[0]);
+      appData.miles = body.map((r, k) => {
+        const date = parseDate(r[0]);
+        const content = r[1] ?? "";
+        const gain = parseInt(r[7]) || 0;
+        const total = parseInt(r[8]) || 0;
+        const fop = parseInt(r[9]) || 0;
+        const flight_count = parseInt(r[10]) || 0;
+        return {
+          _idx:k, date, content, gain, total, fop, flight_count,
+          ui_category: categorizeMile(content)
+        };
+      }).filter(x => /^\d{4}/.test(x.date));
+      return;
+    }
 
-  // Plans
-  if (sheetName.includes("計画") || findHeader(["出発地"]) !== -1) {
-    const idx = findHeader(["出発地"]);
-    if (idx < 0) return;
-    const header = rows[idx];
-    const col = (name) => header.indexOf(name);
+    // Plans
+    idx = findHeaderRow(rows, ["出発地"]);
+    if (idx !== -1) {
+      const h = rows[idx];
+      const iDate = safeIndexOf(h, "日付");
+      const iAir  = safeIndexOf(h, "運航会社");
+      const iNo   = safeIndexOf(h, "便名");
+      const iFrom = safeIndexOf(h, "出発地");
+      const iTo   = safeIndexOf(h, "到着地");
+      const iDep  = safeIndexOf(h, "出発時刻");
+      const iArr  = safeIndexOf(h, "到着時刻");
+      const iSt   = safeIndexOf(h, "結果");
 
-    const cDate = col("日付");
-    const cFrom = col("出発地");
-    const cTo   = col("到着地");
-    const cRes  = col("結果");
+      const body = rows.slice(idx+1).filter(r => r && r[iDate]);
+      appData.plans = body.map((r) => ({
+        date: parseDate(r[iDate]),
+        airline: r[iAir] ?? "",
+        flightNo: r[iNo] ?? "",
+        from: r[iFrom] ?? "",
+        to: r[iTo] ?? "",
+        depTime: r[iDep] ?? "",
+        arrTime: r[iArr] ?? "",
+        status: r[iSt] ?? "予定"
+      })).filter(x => /^\d{4}/.test(x.date));
+      return;
+    }
+  });
 
-    const body = rows.slice(idx + 1).filter(r => r && r[cDate]);
-    appData.plans = body.map((r) => ({
-      date: parseDate(r[cDate]),
-      from: r[cFrom] ?? "",
-      to: r[cTo] ?? "",
-      status: r[cRes] ?? "予定"
-    })).filter(x => x.date && /^\d{4}/.test(x.date));
-  }
-}
+  // Stats compute
+  const year = String(new Date().getFullYear());
 
-function updateStats() {
-  const now = new Date();
-  const year = String(now.getFullYear());
-  const today = now.toISOString().split("T")[0];
-
-  // miles stats
-  if (appData.miles.length) {
-    const latest = [...appData.miles].sort((a,b) => b.date.localeCompare(a.date) || b._idx - a._idx)[0];
+  if (appData.miles.length > 0) {
+    const latest = [...appData.miles].sort((a,b)=> b.date.localeCompare(a.date) || (b._idx-a._idx))[0];
     appData.stats.miles = latest.total || 0;
 
-    const y = appData.miles.filter(m => String(m.date || "").startsWith(year));
-    appData.stats.fop = y.reduce((s, m) => s + (parseInt(m.fop)||0), 0);
-    appData.stats.yearlyFlights = y.reduce((s, m) => s + (parseInt(m.flight_count)||0), 0);
-  } else {
-    appData.stats.miles = 0;
-    appData.stats.fop = 0;
-    appData.stats.yearlyFlights = 0;
+    const ym = appData.miles.filter(m => String(m.date).startsWith(year));
+    appData.stats.fop = ym.reduce((s,m)=> s + (m.fop||0), 0);
+    appData.stats.flights = ym.reduce((s,m)=> s + (m.flight_count||0), 0);
   }
 
-  // lsp stats
-  if (appData.lsp.length) {
-    const latest = [...appData.lsp].sort((a,b) => b.date.localeCompare(a.date) || b._idx - a._idx)[0];
+  if (appData.lsp.length > 0) {
+    const latest = [...appData.lsp].sort((a,b)=> b.date.localeCompare(a.date) || (b._idx-a._idx))[0];
     appData.stats.lsp = latest.total || 0;
-  } else {
-    appData.stats.lsp = 0;
   }
-
-  // planned flights
-  appData.stats.plannedFlights = appData.plans.filter(p => p.status !== "済" && p.date >= today).length;
-
-  safeSetText("stat-miles", appData.stats.miles.toLocaleString());
-  safeSetText("stat-lsp", appData.stats.lsp.toLocaleString());
-  safeSetText("stat-fop", appData.stats.fop.toLocaleString());
-  safeSetText("stat-yearly-flights", `${appData.stats.yearlyFlights} (+${appData.stats.plannedFlights})`);
-}
-
-function renderPieChart(canvasId, groups) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  if (charts[canvasId]) charts[canvasId].destroy();
-
-  const labels = Object.keys(groups).sort((a,b) => (groups[b]||0) - (groups[a]||0));
-  const data = labels.map(l => groups[l]);
-
-  charts[canvasId] = new Chart(ctx, {
-    type: "doughnut",
-    data: { labels, datasets: [{ data }] },
-    options: { responsive:true, maintainAspectRatio:false }
-  });
-}
-
-function updateDashboard() {
-  // miles pie: gain>0 のみ
-  const mileGroups = appData.miles.reduce((g, d) => {
-    const k = d.ui_category || "その他";
-    const v = (d.gain > 0 ? d.gain : 0);
-    g[k] = (g[k] || 0) + v;
-    return g;
-  }, {});
-  const lspGroups = appData.lsp.reduce((g, d) => {
-    const k = d.ui_category || "その他";
-    g[k] = (g[k] || 0) + (d.points || 0);
-    return g;
-  }, {});
-  renderPieChart("milePieChart", mileGroups);
-  renderPieChart("lspPieChart", lspGroups);
-
-  // debug
-  const dbg = {
-    miles_rows: appData.miles.length,
-    lsp_rows: appData.lsp.length,
-    plans_rows: appData.plans.length,
-    stats: appData.stats,
-    source_url: EXCEL_URL
-  };
-  document.getElementById("debugInfo").innerText = JSON.stringify(dbg, null, 2);
-}
-
-function updateDetail() {
-  const title = document.getElementById("detailTitle");
-  const tbody = document.getElementById("table-body");
-  const sel = document.getElementById("categorySelector");
-
-  let data = [];
-  if (currentTab === "miles") {
-    title.innerText = "マイル明細";
-    data = appData.miles.map(d => ({ date:d.date, content:d.content, value:d.gain, cat:d.ui_category }));
-  } else if (currentTab === "lsp") {
-    title.innerText = "LSP明細";
-    data = appData.lsp.map(d => ({ date:d.date, content:d.content, value:d.points, cat:d.ui_category }));
-  } else {
-    title.innerText = "フライト計画";
-    data = appData.plans.map(d => ({ date:d.date, content:`${d.from}→${d.to}`, value:"", cat:d.status || "予定" }));
-  }
-
-  // category selector
-  const cats = ["(すべて)"].concat([...new Set(data.map(x => x.cat).filter(Boolean))]);
-  sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join("");
-  sel.onchange = () => renderTable();
-
-  function renderTable() {
-    const chosen = sel.value;
-    const filtered = chosen === "(すべて)" ? data : data.filter(x => x.cat === chosen);
-    tbody.innerHTML = filtered.map(d => `
-      <tr>
-        <td class="p-3 whitespace-nowrap">${d.date || ""}</td>
-        <td class="p-3 font-bold">${escapeHtml(d.content || "")}</td>
-        <td class="p-3 text-right font-black">${(d.value === "" ? "" : (Number(d.value)||0).toLocaleString())}</td>
-      </tr>
-    `).join("");
-  }
-
-  renderTable();
 }
 
 function updateUI() {
-  updateStats();
-  if (currentTab === "dashboard") updateDashboard();
-  else updateDetail();
+  el("statMiles").textContent   = (appData.stats.miles||0).toLocaleString();
+  el("statLsp").textContent     = (appData.stats.lsp||0).toLocaleString();
+  el("statFop").textContent     = (appData.stats.fop||0).toLocaleString();
+  el("statFlights").textContent = (appData.stats.flights||0).toLocaleString();
 
-  const ts = new Date().toLocaleString();
-  document.getElementById("lastSync").innerText = `最終反映: ${ts}`;
+  renderPie("milePie", groupSum(appData.miles, "ui_category", (x)=> Math.max(0, x.gain||0)));
+  renderPie("lspPie", groupSum(appData.lsp, "ui_category", (x)=> x.points||0));
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (m) => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[m]));
+function groupSum(arr, key, valueFn) {
+  const g = {};
+  for (const item of arr) {
+    const k = String(item[key] ?? "不明");
+    g[k] = (g[k] || 0) + (valueFn(item) || 0);
+  }
+  return g;
 }
 
-// ---- Load from GitHub Raw URL ----
-async function loadFromUrl() {
-  showLoading("GitHubからExcel取得中...", "（初回は数秒かかります）");
-  try {
-    // Cache bust: 反映遅延対策（GitHub Pages / Rawのキャッシュ対策）
-    const cacheBusted = EXCEL_URL + (EXCEL_URL.includes("?") ? "&" : "?") + "t=" + Date.now();
+function renderPie(canvasId, groups) {
+  const ctx = el(canvasId).getContext("2d");
+  const labels = Object.keys(groups).sort((a,b)=> groups[b]-groups[a]);
+  const data = labels.map(l => groups[l]);
 
-    const res = await fetch(cacheBusted, { cache: "no-store" });
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      throw new Error(`Fetch failed: ${res.status}\n${txt.slice(0,200)}`);
+  if (charts[canvasId]) charts[canvasId].destroy();
+
+  charts[canvasId] = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels,
+      datasets: [{ data }]
+    },
+    options: {
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins: {
+        legend: { position:"bottom" }
+      }
     }
+  });
+}
 
-    const buf = await res.arrayBuffer();
-    const wb = XLSX.read(buf, { type:"array", cellDates:true });
+// ===== Fetch & Debug =====
+async function testUrlOnly() {
+  const url = el("urlInput").value.trim();
+  clearDebug();
+  pushStatus("接続テスト開始: " + url);
+  setBadge("warn");
 
-    resetDataKeepStats();
-    wb.SheetNames.forEach(name => {
-      const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 });
-      processRows(name, rows);
-    });
-
-    hideLoading();
-    updateUI();
+  const debug = { phase:"test", url };
+  try {
+    const res = await fetch(url, { method:"GET" });
+    debug.http = { ok: res.ok, status: res.status, statusText: res.statusText, contentType: res.headers.get("content-type") };
+    setDebug(debug);
+    if (!res.ok) {
+      setBadge("ng");
+      pushStatus(`接続NG (HTTP ${res.status})`, "ng");
+      return;
+    }
+    setBadge("ok");
+    pushStatus(`接続OK (HTTP ${res.status})`, "ok");
   } catch (e) {
-    hideLoading();
-    console.error(e);
-    alert("URLからの読み込みに失敗しました。\n\n考えられる原因:\n・URLが違う\n・GitHubの一時的なアクセス制限\n・ページをHTTPS以外で開いている\n\n詳細はコンソールを確認してください。");
+    debug.error = { name:e?.name, message:e?.message, stack:String(e?.stack||"") };
+    setDebug(debug);
+    setBadge("ng");
+    pushStatus(`接続NG (例外) ${e?.message}`, "ng");
   }
 }
 
-// ---- Local file loader ----
+async function syncFromUrl(auto = false) {
+  const url = el("urlInput").value.trim();
+  clearDebug();
+  setBadge("warn");
+
+  pushStatus((auto ? "自動同期開始: " : "同期開始: ") + url);
+
+  const debug = {
+    phase:"sync",
+    url,
+    fetch: {},
+    workbook: {},
+    parse: {},
+    stats: {}
+  };
+
+  try {
+    const res = await fetch(url, { method:"GET" });
+    debug.fetch.ok = res.ok;
+    debug.fetch.status = res.status;
+    debug.fetch.statusText = res.statusText;
+    debug.fetch.contentType = res.headers.get("content-type");
+
+    if (!res.ok) {
+      setBadge("ng");
+      pushStatus(`同期NG (HTTP ${res.status})`, "ng");
+      setDebug(debug);
+      return;
+    }
+
+    const buf = await res.arrayBuffer();
+    debug.fetch.bytes = buf.byteLength;
+
+    const wb = XLSX.read(buf, { type:"array", cellDates:true });
+    debug.workbook.sheetNames = wb.SheetNames;
+
+    // Convert rows for each sheet for parsing + debug sample
+    const rawRowsBySheet = {};
+    const sheetInfo = {};
+    wb.SheetNames.forEach(name => {
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header:1, raw:true });
+      rawRowsBySheet[name] = rows;
+      sheetInfo[name] = { rows: rows.length, cols: Array.isArray(rows[0]) ? rows[0].length : 0 };
+    });
+
+    debug.workbook.sheetInfo = sheetInfo;
+
+    // Parse
+    parseWorkbook(wb, rawRowsBySheet);
+
+    debug.parse.counts = {
+      miles: appData.miles.length,
+      lsp: appData.lsp.length,
+      plans: appData.plans.length
+    };
+
+    // Samples (先頭数行)
+    const sample = {};
+    for (const name of wb.SheetNames) {
+      const rows = rawRowsBySheet[name] || [];
+      sample[name] = rows.slice(0, 6); // header + 5 rows
+    }
+    debug.workbook.sampleRows = sample;
+
+    debug.stats = { ...appData.stats };
+
+    // Update UI
+    updateUI();
+
+    setBadge("ok");
+    pushStatus(`同期OK: miles=${appData.miles.length}, lsp=${appData.lsp.length}, plans=${appData.plans.length}`, "ok");
+
+    setDebug(debug);
+  } catch (e) {
+    debug.error = { name:e?.name, message:e?.message, stack:String(e?.stack||"") };
+    setDebug(debug);
+    setBadge("ng");
+    pushStatus(`同期NG (例外) ${e?.message}`, "ng");
+  }
+}
+
+// ===== Local file loader =====
 function loadFromLocalFile(file) {
-  if (!file) return;
-  showLoading("ローカルExcelを解析中...", file.name);
+  clearDebug();
+  setBadge("warn");
+  pushStatus("ローカル読み込み開始: " + (file?.name||""));
+  const debug = { phase:"local", file: { name:file?.name, size:file?.size, type:file?.type }, workbook:{}, parse:{}, stats:{} };
+
   const reader = new FileReader();
+  reader.onerror = () => {
+    debug.error = { name:"FileReaderError", message:"FileReader failed" };
+    setDebug(debug);
+    setBadge("ng");
+    pushStatus("ローカル読み込みNG: FileReader失敗", "ng");
+  };
   reader.onload = (ev) => {
     try {
-      const wb = XLSX.read(ev.target.result, { type: "array", cellDates:true });
-      resetDataKeepStats();
+      const buf = ev.target.result;
+      const wb = XLSX.read(buf, { type:"array", cellDates:true });
+      debug.workbook.sheetNames = wb.SheetNames;
+
+      const rawRowsBySheet = {};
+      const sheetInfo = {};
       wb.SheetNames.forEach(name => {
-        const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 });
-        processRows(name, rows);
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header:1, raw:true });
+        rawRowsBySheet[name] = rows;
+        sheetInfo[name] = { rows: rows.length, cols: Array.isArray(rows[0]) ? rows[0].length : 0 };
       });
-      hideLoading();
+      debug.workbook.sheetInfo = sheetInfo;
+
+      parseWorkbook(wb, rawRowsBySheet);
       updateUI();
+
+      debug.parse.counts = { miles: appData.miles.length, lsp: appData.lsp.length, plans: appData.plans.length };
+      debug.stats = { ...appData.stats };
+
+      setBadge("ok");
+      pushStatus(`ローカルOK: miles=${appData.miles.length}, lsp=${appData.lsp.length}, plans=${appData.plans.length}`, "ok");
+      setDebug(debug);
     } catch (e) {
-      hideLoading();
-      console.error(e);
-      alert("ローカルExcelの解析に失敗しました。");
+      debug.error = { name:e?.name, message:e?.message, stack:String(e?.stack||"") };
+      setDebug(debug);
+      setBadge("ng");
+      pushStatus(`ローカルNG (例外) ${e?.message}`, "ng");
     }
   };
   reader.readAsArrayBuffer(file);
 }
 
-// ---- Navigation ----
-function switchTab(tab) {
-  currentTab = tab;
-  document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-  document.getElementById("tab-dashboard").classList.toggle("active", tab === "dashboard");
-  document.getElementById("tab-detail").classList.toggle("active", tab !== "dashboard");
-  updateUI();
-}
+// ===== UI wiring =====
+window.addEventListener("load", () => {
+  el("urlInput").value = DEFAULT_AUTO_URL;
 
-// ---- init ----
-window.addEventListener("DOMContentLoaded", () => {
-  // nav binding
-  document.querySelectorAll(".nav-item").forEach(btn => {
-    btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+  el("btnSync").addEventListener("click", () => syncFromUrl(false));
+  el("btnTestUrl").addEventListener("click", () => testUrlOnly());
+
+  el("btnCopyUrl").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(el("urlInput").value.trim());
+      pushStatus("URLをコピーしました", "ok");
+    } catch {
+      pushStatus("URLコピーに失敗（ブラウザ権限）", "ng");
+    }
   });
 
-  // sync button
-  document.getElementById("btnSync").addEventListener("click", loadFromUrl);
-
-  // file input
-  document.getElementById("fileInput").addEventListener("change", (e) => {
-    const f = e.target.files && e.target.files[0];
-    loadFromLocalFile(f);
+  el("btnCopyDebug").addEventListener("click", async () => {
+    const t = el("debugJson").textContent || "";
+    if (!t) { pushStatus("Debugが空です（まだ同期していない）", "ng"); return; }
+    try {
+      await navigator.clipboard.writeText(t);
+      pushStatus("Debug JSON をコピーしました", "ok");
+    } catch {
+      pushStatus("Debugコピーに失敗（ブラウザ権限）", "ng");
+    }
   });
 
-  // 初回：自動でURL同期
-  loadFromUrl();
+  el("btnClearDebug").addEventListener("click", () => {
+    clearDebug();
+    pushStatus("Debugをクリアしました");
+  });
+
+  el("fileInput").addEventListener("change", (e) => {
+    const f = e.target.files?.[0];
+    if (f) loadFromLocalFile(f);
+  });
+
+  // 初回は自動同期（失敗しても理由がDebugに出る）
+  syncFromUrl(true);
 });
 </script>
 </body>
