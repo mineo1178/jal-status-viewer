@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>JAL Status & Flight Manager Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -16,7 +16,9 @@
         body {
             font-family: 'Noto Sans JP', sans-serif;
             background-color: #f1f5f9;
+            -webkit-tap-highlight-color: transparent;
         }
+        /* Desktop Sidebar Styles */
         #sidebar {
             transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             width: 64px;
@@ -43,6 +45,11 @@
             background-color: #1e293b;
             color: white;
         }
+        /* Mobile Bottom Nav Styles */
+        .mobile-nav-item.active {
+            color: var(--jal-red);
+        }
+
         .stat-card {
             border-left: 4px solid var(--jal-red);
         }
@@ -54,10 +61,12 @@
         }
         canvas {
             max-height: 320px;
+            width: 100% !important;
         }
         .table-container {
             max-height: 600px;
             overflow-y: auto;
+            overflow-x: auto;
         }
         select, input[type="date"] {
             border: 1px solid #e2e8f0;
@@ -76,12 +85,16 @@
             padding: 0.5rem 1rem;
             border-radius: 0.75rem;
         }
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="flex flex-col md:flex-row h-screen overflow-hidden">
 
-    <!-- Sidebar -->
-    <aside id="sidebar" class="bg-[#0f172a] text-slate-400 flex flex-col h-full z-50 shadow-2xl shrink-0">
+    <!-- Sidebar (Desktop only) -->
+    <aside id="sidebar" class="hidden md:flex bg-[#0f172a] text-slate-400 flex-col h-full z-50 shadow-2xl shrink-0">
         <div class="h-16 flex items-center px-4 border-b border-slate-800 shrink-0">
             <button id="toggleBtn" class="text-xl hover:text-white transition-colors w-8 h-8 flex items-center justify-center">
                 <i class="fa-solid fa-bars"></i>
@@ -110,148 +123,162 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col h-full min-w-0">
-        <header class="h-16 bg-white border-b flex items-center justify-between px-8 shrink-0 shadow-sm z-10">
+    <main class="flex-1 flex flex-col h-full min-w-0 pb-16 md:pb-0">
+        <!-- Header -->
+        <header class="h-14 md:h-16 bg-white border-b flex items-center justify-between px-4 md:px-8 shrink-0 shadow-sm z-10">
             <div class="flex items-center gap-4">
-                <h2 id="tabTitle" class="text-xl font-extrabold text-slate-800 tracking-tight">ダッシュボード</h2>
+                <h2 id="tabTitle" class="text-lg md:text-xl font-extrabold text-slate-800 tracking-tight">ダッシュボード</h2>
             </div>
             <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white border-2 border-white shadow-md">
-                    <i class="fa-solid fa-user-tie"></i>
+                <div class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-900 flex items-center justify-center text-white border-2 border-white shadow-md">
+                    <i class="fa-solid fa-user-tie text-xs md:text-base"></i>
                 </div>
             </div>
         </header>
 
-        <div id="content" class="flex-1 overflow-y-auto p-6 md:p-8">
+        <!-- Content Area -->
+        <div id="content" class="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar">
             
             <!-- DASHBOARD TAB -->
-            <div id="tab-dashboard" class="tab-content active space-y-8">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm stat-card border-l-[#E10009]">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Current Miles</p>
-                        <div class="flex items-baseline gap-2"><span id="stat-miles" class="text-3xl font-black text-slate-800">0</span><span class="text-xs font-bold text-slate-400">mile</span></div>
+            <div id="tab-dashboard" class="tab-content active space-y-6 md:space-y-8">
+                <!-- Stat Cards: 2 cols on mobile, 4 on desktop -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+                    <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-[#E10009]">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Miles</p>
+                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-miles" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">mile</span></div>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm stat-card border-l-blue-500">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Life Status Points</p>
-                        <div class="flex items-baseline gap-2"><span id="stat-lsp" class="text-3xl font-black text-slate-800">0</span><span class="text-xs font-bold text-slate-400">pts</span></div>
+                    <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-blue-500">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">LSP</p>
+                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-lsp" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">pts</span></div>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm stat-card border-l-orange-500">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Yearly FLY ON</p>
-                        <div class="flex items-baseline gap-2"><span id="stat-fop" class="text-3xl font-black text-slate-800">0</span><span class="text-xs font-bold text-slate-400">FOP</span></div>
+                    <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-orange-500">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Yearly FOP</p>
+                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-fop" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">FOP</span></div>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm stat-card border-l-emerald-500">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Yearly Flights</p>
-                        <div class="flex items-baseline gap-2"><span id="stat-yearly-flights" class="text-3xl font-black text-slate-800">0</span><span class="text-xs font-bold text-slate-400">回</span></div>
+                    <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-emerald-500">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Flights</p>
+                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-yearly-flights" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">回</span></div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100">
-                    <h3 class="font-black text-slate-800 flex items-center gap-2 mb-6">
+                <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100">
+                    <h3 class="font-black text-sm md:text-base text-slate-800 flex items-center gap-2 mb-4 md:mb-6">
                         <i class="fa-solid fa-chart-line text-[#E10009]"></i> 
-                        <span>本年度ステータス進捗</span> (1月-12月 累計推移)
+                        <span>ステータス進捗</span>
                     </h3>
-                    <div class="h-80"><canvas id="annualTrendChart"></canvas></div>
+                    <div class="h-64 md:h-80"><canvas id="annualTrendChart"></canvas></div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100">
-                        <h3 class="font-black text-slate-800 flex items-center gap-2 mb-6"><i class="fa-solid fa-chart-pie text-red-500"></i> <span id="dash-mile-pie-title">獲得マイル種別内訳 (全期間)</span></h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+                    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100">
+                        <h3 class="font-black text-sm md:text-base text-slate-800 flex items-center gap-2 mb-4 md:mb-6"><i class="fa-solid fa-chart-pie text-red-500"></i> <span id="dash-mile-pie-title">獲得マイル内訳</span></h3>
                         <div class="h-64"><canvas id="milePieChart"></canvas></div>
                     </div>
-                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100">
-                        <h3 class="font-black text-slate-800 flex items-center gap-2 mb-6"><i class="fa-solid fa-chart-pie text-blue-500"></i> <span id="dash-lsp-pie-title">LSP獲得種別内訳 (全期間)</span></h3>
+                    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100">
+                        <h3 class="font-black text-sm md:text-base text-slate-800 flex items-center gap-2 mb-4 md:mb-6"><i class="fa-solid fa-chart-pie text-blue-500"></i> <span id="dash-lsp-pie-title">LSP獲得内訳</span></h3>
                         <div class="h-64"><canvas id="lspPieChart"></canvas></div>
                     </div>
                 </div>
             </div>
 
-            <!-- DETAIL TAB (Miles/LSP/Flights common) -->
-            <div id="tab-detail" class="tab-content space-y-8">
-                <div id="flightSummarySection" class="grid grid-cols-1 lg:grid-cols-3 gap-6 hidden">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Upcoming Flights</p>
+            <!-- DETAIL TAB -->
+            <div id="tab-detail" class="tab-content space-y-6 md:space-y-8">
+                <div id="flightSummarySection" class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 hidden">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Upcoming Flights</p>
                         <div class="flex items-baseline gap-2">
-                            <span id="stat-planned-flights" class="text-4xl font-black text-red-600">0</span>
-                            <span class="text-sm font-bold text-slate-400">今後の搭乗予定</span>
+                            <span id="stat-planned-flights" class="text-3xl md:text-4xl font-black text-red-600">0</span>
+                            <span class="text-xs font-bold text-slate-400">予定</span>
                         </div>
                     </div>
-                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Next Schedule</p>
-                        <div id="flightCards" class="flex flex-wrap gap-4">
-                            <p class="text-sm text-slate-400 italic">予定されているフライトはありません</p>
+                    <div class="lg:col-span-2 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-3">Next Schedule</p>
+                        <div id="flightCards" class="flex overflow-x-auto gap-3 no-scrollbar pb-1">
+                            <p class="text-sm text-slate-400 italic">予定はありません</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" id="analysisGrid">
-                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100" id="pieChartContainer">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="font-black text-slate-800 flex items-center gap-2" id="detailPieTitle">内訳</h3>
-                            <div class="text-xs font-black text-red-600 bg-red-50 px-3 py-1 rounded-full shadow-sm" id="totalEarnedValue">合計: 0</div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8" id="analysisGrid">
+                    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100" id="pieChartContainer">
+                        <div class="flex justify-between items-center mb-4 md:mb-6">
+                            <h3 class="font-black text-sm md:text-base text-slate-800" id="detailPieTitle">内訳</h3>
+                            <div class="text-[10px] font-black text-red-600 bg-red-50 px-3 py-1 rounded-full" id="totalEarnedValue">0</div>
                         </div>
                         <div class="h-64"><canvas id="detailPieChart"></canvas></div>
                     </div>
-                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100 transition-all duration-500" id="lineChartContainer">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="font-black text-slate-800 flex items-center gap-2" id="detailLineTitle">月別獲得実績</h3>
-                            <div class="filter-group">
-                                <input type="date" id="chartFilterStart" onchange="updateUI()">
-                                <span class="text-slate-300 font-bold">~</span>
-                                <input type="date" id="chartFilterEnd" onchange="updateUI()">
+                    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100" id="lineChartContainer">
+                        <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-4 md:mb-6">
+                            <h3 class="font-black text-sm md:text-base text-slate-800" id="detailLineTitle">実績</h3>
+                            <div class="flex gap-2">
+                                <input type="date" id="chartFilterStart" onchange="updateUI()" class="flex-1 md:flex-none">
+                                <input type="date" id="chartFilterEnd" onchange="updateUI()" class="flex-1 md:flex-none">
                             </div>
                         </div>
                         <div class="h-64"><canvas id="detailLineChart"></canvas></div>
                     </div>
 
-                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100 hidden lg:col-span-2" id="mileTrendSection">
-                        <h3 class="font-black text-slate-800 flex items-center gap-2 mb-6"><i class="fa-solid fa-chart-line text-[#E10009]"></i> マイル保有推移 & 月別獲得</h3>
-                        <div class="h-80"><canvas id="mileMixedChart"></canvas></div>
+                    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100 hidden lg:col-span-2" id="mileTrendSection">
+                        <h3 class="font-black text-sm md:text-base text-slate-800 mb-6">マイル推移</h3>
+                        <div class="h-64 md:h-80"><canvas id="mileMixedChart"></canvas></div>
                     </div>
 
-                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100 hidden lg:col-span-2" id="lspTrendSection">
-                        <h3 class="font-black text-slate-800 flex items-center gap-2 mb-6"><i class="fa-solid fa-chart-line text-blue-500"></i> LSP累積推移 & 月別獲得</h3>
-                        <div class="h-80"><canvas id="lspMixedChart"></canvas></div>
+                    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100 hidden lg:col-span-2" id="lspTrendSection">
+                        <h3 class="font-black text-sm md:text-base text-slate-800 mb-6">LSP累積推移</h3>
+                        <div class="h-64 md:h-80"><canvas id="lspMixedChart"></canvas></div>
                     </div>
 
-                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100 hidden lg:col-span-2" id="rankingSection">
-                        <h3 class="font-black text-slate-800 flex items-center gap-2 mb-6"><i class="fa-solid fa-trophy text-amber-500"></i> 区間ランキング</h3>
-                        <div class="h-80"><canvas id="rankingChart"></canvas></div>
+                    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100 hidden lg:col-span-2" id="rankingSection">
+                        <h3 class="font-black text-sm md:text-base text-slate-800 mb-6">区間ランキング</h3>
+                        <div class="h-64 md:h-80"><canvas id="rankingChart"></canvas></div>
                     </div>
                 </div>
 
+                <!-- Table Container -->
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div class="p-4 border-b border-slate-50 flex flex-wrap items-center justify-between gap-4">
+                    <div class="p-4 border-b border-slate-50 flex flex-wrap items-center justify-between gap-3">
                         <h3 class="font-bold text-slate-800">データ明細</h3>
-                        <div class="flex flex-wrap gap-3">
-                            <div id="monthFilterGroup" class="filter-group hidden">
-                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">絞り込み:</span>
-                                <select id="monthSelector" onchange="updateUI()"></select>
-                            </div>
-                            <div id="categoryFilterGroup" class="filter-group">
-                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">カテゴリ:</span>
-                                <select id="categorySelector" onchange="updateUI()"></select>
-                            </div>
+                        <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                            <select id="monthSelector" onchange="updateUI()" class="flex-1 md:flex-none hidden"></select>
+                            <select id="categorySelector" onchange="updateUI()" class="flex-1 md:flex-none"></select>
                         </div>
                     </div>
                     <div class="table-container">
-                        <table class="w-full text-left border-collapse">
-                            <thead id="table-head" class="sticky top-0 bg-white z-10 shadow-sm"></thead>
-                            <tbody id="table-body" class="divide-y divide-slate-50"></tbody>
+                        <table class="w-full text-left border-collapse min-w-[500px]">
+                            <thead id="table-head" class="sticky top-0 bg-white z-10 shadow-sm border-b"></thead>
+                            <tbody id="table-body" class="divide-y divide-slate-50 text-sm"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
-
         </div>
+
+        <!-- Mobile Bottom Navigation (Visible only on mobile) -->
+        <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 h-16 flex items-center justify-around z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+            <button onclick="switchTab('dashboard')" class="mobile-nav-item flex flex-col items-center gap-1 active" data-tab-mob="dashboard">
+                <i class="fa-solid fa-gauge-high text-lg"></i>
+                <span class="text-[10px] font-bold">ダッシュ</span>
+            </button>
+            <button onclick="switchTab('miles')" class="mobile-nav-item flex flex-col items-center gap-1" data-tab-mob="miles">
+                <i class="fa-solid fa-award text-lg"></i>
+                <span class="text-[10px] font-bold">マイル</span>
+            </button>
+            <button onclick="switchTab('lsp')" class="mobile-nav-item flex flex-col items-center gap-1" data-tab-mob="lsp">
+                <i class="fa-solid fa-star-half-stroke text-lg"></i>
+                <span class="text-[10px] font-bold">LSP</span>
+            </button>
+            <button onclick="switchTab('flights')" class="mobile-nav-item flex flex-col items-center gap-1" data-tab-mob="flights">
+                <i class="fa-solid fa-plane-departure text-lg"></i>
+                <span class="text-[10px] font-bold">フライト</span>
+            </button>
+        </nav>
     </main>
 
     <script>
-        // --- State Management ---
+        // --- State ---
         let appData = { plans: [], lsp: [], miles: [], stats: { miles: 0, lsp: 0, fop: 0, yearlyFlights: 0, plannedFlights: 0 } };
         let currentTab = 'dashboard';
         let charts = {};
-        let activeFilters = { category: 'all' };
-
         const EXCEL_URL = "https://raw.githubusercontent.com/mineo1178/jal-status-viewer/main/data/20251229_LSP%E7%AE%A1%E7%90%86.xlsx";
 
         const safeSetText = (id, text) => { const el = document.getElementById(id); if (el) el.innerText = text; };
@@ -260,31 +287,20 @@
         // --- Helpers ---
         function parseDate(val) {
             if (!val) return "";
-            if (val instanceof Date) {
-                const y = val.getFullYear();
-                const m = String(val.getMonth() + 1).padStart(2, '0');
-                const d = String(val.getDate()).padStart(2, '0');
-                return `${y}-${m}-${d}`;
-            }
+            if (val instanceof Date) return val.toISOString().split('T')[0];
             if (typeof val === 'number') { 
                 const d = new Date((val - 25569) * 86400 * 1000); 
-                const y = d.getFullYear();
-                const m = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                return `${y}-${m}-${day}`;
+                return d.toISOString().split('T')[0];
             }
-            let str = String(val).replace(/ /g, '').replace(/　/g, '');
+            let str = String(val).replace(/\//g, '-').trim();
             if (str.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) return str;
-            if (str.match(/^\d{4}\/\d{1,2}\/\d{1,2}$/)) return str.replace(/\//g, '-');
             return str;
         }
 
         function getDayOfWeek(dateStr) {
             if(!dateStr) return "";
             const days = ["日", "月", "火", "水", "木", "金", "土"];
-            const parts = dateStr.split('-');
-            if(parts.length < 3) return "";
-            const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+            const d = new Date(dateStr);
             return isNaN(d.getTime()) ? "" : `(${days[d.getDay()]})`;
         }
 
@@ -295,7 +311,6 @@
             if (document.getElementById('chartFilterStart')) document.getElementById('chartFilterStart').value = sixMonthsAgo.toISOString().split('T')[0];
             if (document.getElementById('chartFilterEnd')) document.getElementById('chartFilterEnd').value = today.toISOString().split('T')[0];
             
-            // 起動時に自動同期実行
             await syncFromUrl();
         };
 
@@ -304,7 +319,10 @@
 
         function switchTab(tabId) {
             currentTab = tabId;
+            // Update Navigation State (PC & Mobile)
             document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.tab === tabId));
+            document.querySelectorAll('.mobile-nav-item').forEach(el => el.classList.toggle('active', el.dataset.tabMob === tabId));
+            
             document.getElementById('tabTitle').innerText = { 'dashboard': 'ダッシュボード', 'miles': 'マイル管理', 'lsp': 'LSP管理', 'flights': 'フライト管理' }[tabId];
             
             const dashTab = document.getElementById('tab-dashboard');
@@ -336,64 +354,37 @@
             updateUI();
         }
 
-        // --- Data Fetching ---
+        // --- Logic ---
         async function syncFromUrl() {
             try {
                 const response = await fetch(EXCEL_URL);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                
                 const buffer = await response.arrayBuffer();
                 const wb = XLSX.read(buffer, { cellDates: true });
-                
-                wb.SheetNames.forEach(name => {
-                    const ws = wb.Sheets[name];
-                    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
-                    processRows(name, rows);
-                });
-                
+                wb.SheetNames.forEach(name => processRows(name, XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 })));
                 updateUI();
-            } catch (e) {
-                console.error("Data Sync Failed:", e.message);
-            }
+            } catch (e) { console.error("Sync Error:", e.message); }
         }
 
         function processRows(sheetName, rows) {
             const findHeader = (kw) => rows.findIndex(r => r && r.some(c => typeof c === 'string' && kw.some(k => c.includes(k))));
             
             if (sheetName.includes('LSP') || findHeader(['積算日']) !== -1) {
-                const idx = findHeader(['積算日']); 
-                if (idx === -1) return;
+                const idx = findHeader(['積算日']); if (idx === -1) return;
                 const h = rows[idx];
-                const dateIdx = h.indexOf('積算日');
-                const validRows = rows.slice(idx + 1).filter(r => r && r[dateIdx] && r[dateIdx] !== "");
+                const validRows = rows.slice(idx + 1).filter(r => r && r[h.indexOf('積算日')]);
                 appData.lsp = validRows.map((r, i) => {
                     const o = { 
-                        _idx: i,
-                        date: parseDate(r[dateIdx]), 
-                        category: r[h.indexOf('カテゴリー')] || '不明', 
-                        service: r[h.indexOf('サービス')] || '不明', 
-                        content: r[h.indexOf('内容')], 
-                        points: parseFloat(r[h.indexOf('ポイント')]) || 0, 
-                        total: parseFloat(r[h.indexOf('累積ポイント')]) || 0 
+                        _idx: i, date: parseDate(r[h.indexOf('積算日')]), 
+                        category: r[h.indexOf('カテゴリー')] || '不明', points: parseFloat(r[h.indexOf('ポイント')]) || 0, total: parseFloat(r[h.indexOf('累積ポイント')]) || 0, content: r[h.indexOf('内容')]
                     };
                     o.ui_category = categorizeLSP(o); return o;
                 }).filter(i => i.date && i.date.match(/^\d{4}/));
             }
             else if (sheetName.includes('マイル') || findHeader(['有効マイル']) !== -1) {
-                const idx = findHeader(['有効マイル']); 
-                if (idx === -1) return;
-                const h = rows[idx];
-                const validRows = rows.slice(idx + 1).filter(r => r && r[0]);
-                appData.miles = validRows.map((r, i) => {
-                    const o = { 
-                        _idx: i,
-                        date: parseDate(r[0]), 
-                        content: r[1], 
-                        gain: parseInt(r[7]) || 0, 
-                        total: parseInt(r[8]) || 0, 
-                        fop: parseInt(r[9]) || 0, 
-                        flight_count: parseInt(r[10]) || 0 
-                    };
+                const idx = findHeader(['有効マイル']); if (idx === -1) return;
+                appData.miles = rows.slice(idx + 1).filter(r => r && r[0]).map((r, i) => {
+                    const o = { _idx: i, date: parseDate(r[0]), content: r[1], gain: parseInt(r[7]) || 0, total: parseInt(r[8]) || 0, fop: parseInt(r[9]) || 0, flight_count: parseInt(r[10]) || 0 };
                     o.ui_category = categorizeMile(o.content); return o;
                 }).filter(i => i.date && i.date.match(/^\d{4}/));
             }
@@ -406,33 +397,25 @@
             }
         }
 
-        function categorizeMile(content) {
-            const c = String(content || "その他獲得");
+        function categorizeMile(c) {
+            c = String(c || "");
             if (c.match(/[A-Z]{2,3}\d+/) || ["羽田","那覇","福岡","石垣","宮古","成田","伊丹","HND","FUK","OKA"].some(k => c.includes(k))) return "フライト獲得";
-            if (c.includes("カード") || c.includes("ClubQ") || c.includes("ＰＯＩＮＴ")) return "JALカード決済";
-            if (c.includes("Wellness") || c.includes("ＷＥＬＬＮＥＳＳ")) return "Wellness";
-            if (c.includes("キャンペーン") || c.includes("ボーナス") || c.includes("プレゼント")) return "特典/CP";
-            if (c.includes("ホテル") || c.includes("宿泊") || c.includes("予約")) return "宿泊・旅行";
-            if (c.includes("ポイント") || c.includes("交換") || c.includes("Ｐｏｎｔａ")) return "ポイント連携";
-            return "その他獲得";
+            if (c.includes("カード") || c.includes("ClubQ")) return "JALカード決済";
+            if (c.includes("Wellness")) return "Wellness";
+            if (c.includes("キャンペーン") || c.includes("ボーナス")) return "特典/CP";
+            return "その他";
         }
 
         function categorizeLSP(item) {
-            const cat = String(item.category || ""); const serv = String(item.service || "");
-            if (cat.includes("航空")) return serv.includes("国内") ? "航空: 国内線" : "航空: その他";
-            if (cat.includes("ライフ")) {
-                if(serv.includes("カード")) return "ライフ: カード";
-                if(serv.includes("モバイル")) return "ライフ: モバイル";
-                if(serv.includes("Wellness")) return "ライフ: Wellness";
-                return "ライフ: その他";
-            }
-            return "その他獲得";
+            const cat = String(item.category || "");
+            if (cat.includes("航空")) return "航空: 国内/国際";
+            if (cat.includes("ライフ")) return "ライフスタイル";
+            return "その他";
         }
 
         function updateUI() {
-            const now = new Date();
-            const currentYear = now.getFullYear().toString();
-            const todayStr = now.toISOString().split('T')[0];
+            const todayStr = new Date().toISOString().split('T')[0];
+            const currentYear = new Date().getFullYear().toString();
 
             if (appData.miles.length > 0) {
                 const s = [...appData.miles].sort((a,b) => b.date.localeCompare(a.date) || b._idx - a._idx);
@@ -454,14 +437,12 @@
             safeSetText('stat-fop', appData.stats.fop.toLocaleString());
             safeSetText('stat-yearly-flights', `${appData.stats.yearlyFlights.toLocaleString()} (${appData.stats.plannedFlights})`);
 
-            if (currentTab === 'dashboard') {
-                updateDashboard();
-            } else {
+            if (currentTab === 'dashboard') updateDashboard();
+            else {
                 const cS = document.getElementById('chartFilterStart').value;
                 const cE = document.getElementById('chartFilterEnd').value;
                 const catSelValue = document.getElementById('categorySelector')?.value || 'all';
                 const listF = (list, start, end) => list.filter(i => (!start || i.date >= start) && (!end || i.date <= end));
-                
                 if (currentTab === 'miles') updateMilesTab(listF(appData.miles, cS, cE), catSelValue);
                 else if (currentTab === 'lsp') updateLSPTab(listF(appData.lsp, cS, cE), catSelValue);
                 else if (currentTab === 'flights') updateFlightsTab(listF(appData.plans, cS, cE));
@@ -469,219 +450,117 @@
         }
 
         function updateDashboard() {
-            const now = new Date();
-            const currentYear = now.getFullYear().toString();
-            const currentMonth = now.getMonth(); 
-
-            const ym = appData.miles.filter(m => m.date.startsWith(currentYear));
-            const monthLabels = Array.from({length: 12}, (_, i) => `${i+1}月`);
+            const curMonth = new Date().getMonth();
+            const ym = appData.miles.filter(m => m.date.startsWith(new Date().getFullYear()));
             const mFop = Array(12).fill(0), mFl = Array(12).fill(0);
-            
-            ym.forEach(m => { 
-                const parts = m.date.split('-');
-                if(parts.length >= 2) {
-                    const idx = parseInt(parts[1]) - 1; 
-                    if (idx>=0 && idx<12) { 
-                        mFop[idx] += (parseInt(m.fop)||0); 
-                        mFl[idx] += (parseInt(m.flight_count)||0); 
-                    } 
-                }
-            });
-            
+            ym.forEach(m => { const idx = parseInt(m.date.split('-')[1]) - 1; if(idx>=0 && idx<12) { mFop[idx] += (parseInt(m.fop)||0); mFl[idx] += (parseInt(m.flight_count)||0); }});
             let rF = 0, rL = 0;
-            const cF = mFop.map((v, i) => i <= currentMonth ? (rF += v) : (i === 0 ? 0 : null));
-            const cL = mFl.map((v, i) => i <= currentMonth ? (rL += v) : (i === 0 ? 0 : null));
-            
-            try { renderMixedChart('annualTrendChart', monthLabels, cF, cL); } catch(e){}
-            
-            const mileTotalGains = appData.miles.reduce((s, m) => s + (m.gain > 0 ? m.gain : 0), 0);
-            const lspTotalPoints = appData.lsp.reduce((s, l) => s + l.points, 0);
-            
-            safeSetText('dash-mile-pie-title', `総獲得マイル内訳: ${mileTotalGains.toLocaleString()} mile`);
-            safeSetText('dash-lsp-pie-title', `総LSP獲得内訳: ${lspTotalPoints.toLocaleString()} LSP`);
-
+            const cF = mFop.map((v, i) => i <= curMonth ? (rF += v) : null);
+            const cL = mFl.map((v, i) => i <= curMonth ? (rL += v) : null);
+            try { renderMixedChart('annualTrendChart', Array.from({length:12}, (_,i)=>`${i+1}月`), cF, cL); } catch(e){}
             try { renderPieChart('milePieChart', appData.miles.reduce((g, d) => ({...g, [d.ui_category]: (g[d.ui_category]||0) + (d.gain > 0 ? d.gain : 0)}), {})); } catch(e){}
             try { renderPieChart('lspPieChart', appData.lsp.reduce((g, d) => ({...g, [d.ui_category]: (g[d.ui_category]||0) + d.points}), {})); } catch(e){}
         }
 
         function updateMilesTab(chartData, catFilter) {
-            safeSetText('detailLineTitle', '月別獲得実績');
+            safeSetText('detailLineTitle', '月別マイル獲得');
             document.getElementById('rankingSection').classList.add('hidden');
-            document.getElementById('monthFilterGroup').classList.add('hidden');
-            document.getElementById('categoryFilterGroup').classList.remove('hidden');
-
             try { renderPieChart('detailPieChart', chartData.reduce((g, d) => ({...g, [d.ui_category]: (g[d.ui_category]||0) + (d.gain > 0 ? d.gain : 0)}), {})); } catch(e){}
             try { renderStackedBar('detailLineChart', chartData, 'gain'); } catch(e){}
-            try { renderMixedTrendChart('mileMixedChart', chartData, 'gain', 'total', '獲得マイル', '保有残高', '#1e293b', '#E10009'); } catch(e){}
-
+            try { renderMixedTrendChart('mileMixedChart', chartData, 'gain', 'total', '獲得', '残高', '#1e293b', '#E10009'); } catch(e){}
             const sel = document.getElementById('categorySelector');
             if (sel) {
                 const cats = ['all', ...new Set(appData.miles.map(m => m.ui_category))].sort();
-                if (sel.options.length !== cats.length) {
-                    sel.innerHTML = cats.map(c => `<option value="${c}" ${c === catFilter ? 'selected' : ''}>${c === 'all' ? '全てのカテゴリを表示' : c}</option>`).join('');
-                }
+                sel.innerHTML = cats.map(c => `<option value="${c}" ${c === catFilter ? 'selected' : ''}>${c === 'all' ? '全て表示' : c}</option>`).join('');
             }
-
-            const filteredForTable = appData.miles
-                .filter(m => catFilter === 'all' || m.ui_category === catFilter)
-                .sort((a, b) => b.date.localeCompare(a.date) || b._idx - a._idx);
-
-            const totalGainSum = filteredForTable.reduce((s, m) => s + (m.gain > 0 ? m.gain : 0), 0);
-            safeSetText('totalEarnedValue', `表示中総獲得: ${totalGainSum.toLocaleString()} mile`);
-
-            safeSetHTML('table-head', `<tr><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">日付</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">カテゴリ</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">内容</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-right">獲得</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-right">残高</th></tr>`);
-            safeSetHTML('table-body', filteredForTable.map(m => `<tr class="hover:bg-red-50/30 transition border-b border-slate-50"><td class="p-4 text-sm">${m.date}</td><td class="p-4 text-[10px] font-bold text-slate-500">${m.ui_category}</td><td class="p-4 text-sm font-bold">${m.content}</td><td class="p-4 text-sm font-black text-red-500 text-right">${m.gain > 0 ? '+' : ''}${m.gain.toLocaleString()}</td><td class="p-4 text-sm font-bold text-right">${m.total.toLocaleString()}</td></tr>`).join(''));
+            const filtered = appData.miles.filter(m => catFilter === 'all' || m.ui_category === catFilter).sort((a, b) => b.date.localeCompare(a.date) || b._idx - a._idx);
+            safeSetText('totalEarnedValue', `合計: ${filtered.reduce((s, m) => s + (m.gain > 0 ? m.gain : 0), 0).toLocaleString()} mile`);
+            safeSetHTML('table-head', `<tr><th class="p-3">日付</th><th class="p-3">カテゴリ</th><th class="p-3">内容</th><th class="p-3 text-right">獲得</th><th class="p-3 text-right">残高</th></tr>`);
+            safeSetHTML('table-body', filtered.map(m => `<tr class="border-b"><td class="p-3 whitespace-nowrap">${m.date}</td><td class="p-3 text-[10px] font-bold">${m.ui_category}</td><td class="p-3 font-bold">${m.content}</td><td class="p-3 text-right text-red-500 font-black">${m.gain > 0 ? '+' : ''}${m.gain.toLocaleString()}</td><td class="p-3 text-right font-bold">${m.total.toLocaleString()}</td></tr>`).join(''));
         }
 
         function updateLSPTab(chartData, catFilter) {
-            safeSetText('detailLineTitle', '月別獲得実績');
+            safeSetText('detailLineTitle', '月別LSP実績');
             document.getElementById('rankingSection').classList.add('hidden');
-            document.getElementById('monthFilterGroup').classList.add('hidden');
-            document.getElementById('categoryFilterGroup').classList.remove('hidden');
-
             try { renderPieChart('detailPieChart', chartData.reduce((g, d) => ({...g, [d.ui_category]: (g[d.ui_category]||0)+d.points}), {})); } catch(e){}
             try { renderStackedBar('detailLineChart', chartData, 'points'); } catch(e){}
-            try { renderMixedTrendChart('lspMixedChart', chartData, 'points', 'total', '獲得LSP', '累計LSP', '#1e293b', '#3b82f6'); } catch(e){}
-
+            try { renderMixedTrendChart('lspMixedChart', chartData, 'points', 'total', '獲得', '累計', '#1e293b', '#3b82f6'); } catch(e){}
             const sel = document.getElementById('categorySelector');
             if (sel) {
                 const cats = ['all', ...new Set(appData.lsp.map(l => l.ui_category))].sort();
-                if (sel.options.length !== cats.length) {
-                    sel.innerHTML = cats.map(c => `<option value="${c}" ${c === catFilter ? 'selected' : ''}>${c === 'all' ? '全てのカテゴリを表示' : c}</option>`).join('');
-                }
+                sel.innerHTML = cats.map(c => `<option value="${c}" ${c === catFilter ? 'selected' : ''}>${c === 'all' ? '全て表示' : c}</option>`).join('');
             }
-
-            const filteredForTable = appData.lsp
-                .filter(l => catFilter === 'all' || l.ui_category === catFilter)
-                .sort((a, b) => b.date.localeCompare(a.date) || b._idx - a._idx);
-
-            const totalSum = filteredForTable.reduce((s, l) => s + l.points, 0);
-            safeSetText('totalEarnedValue', `表示中合計: ${totalSum.toLocaleString()} LSP`);
-
-            safeSetHTML('table-head', `<tr><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">積算日</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">カテゴリ</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">内容</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-right">獲得</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-right">累積</th></tr>`);
-            safeSetHTML('table-body', filteredForTable.map(l => `<tr class="hover:bg-blue-50/30 transition border-b border-slate-50"><td class="p-4 text-sm font-bold">${l.date}</td><td class="p-4 text-[10px] font-bold text-slate-500">${l.ui_category}</td><td class="p-4 text-sm"><strong>${l.content}</strong></td><td class="p-4 text-sm font-black text-red-500 text-right">+${l.points.toLocaleString()}</td><td class="p-4 text-sm font-bold text-right">${l.total.toLocaleString()}</td></tr>`).join(''));
+            const filtered = appData.lsp.filter(l => catFilter === 'all' || l.ui_category === catFilter).sort((a, b) => b.date.localeCompare(a.date) || b._idx - a._idx);
+            safeSetText('totalEarnedValue', `合計: ${filtered.reduce((s, l) => s + l.points, 0).toLocaleString()} LSP`);
+            safeSetHTML('table-head', `<tr><th class="p-3">日付</th><th class="p-3">カテゴリ</th><th class="p-3">内容</th><th class="p-3 text-right">獲得</th><th class="p-3 text-right">累計</th></tr>`);
+            safeSetHTML('table-body', filtered.map(l => `<tr class="border-b"><td class="p-3 whitespace-nowrap">${l.date}</td><td class="p-3 text-[10px] font-bold">${l.ui_category}</td><td class="p-3 font-bold">${l.content}</td><td class="p-3 text-right text-blue-500 font-black">+${l.points.toLocaleString()}</td><td class="p-3 text-right font-bold">${l.total.toLocaleString()}</td></tr>`).join(''));
         }
 
         function updateFlightsTab(chartData) {
-            safeSetText('detailLineTitle', '月別搭乗頻度');
-            document.getElementById('pieChartContainer')?.classList.add('hidden');
-            document.getElementById('rankingSection')?.classList.remove('hidden');
-            document.getElementById('monthFilterGroup')?.classList.remove('hidden');
-            document.getElementById('categoryFilterGroup')?.classList.add('hidden');
-
+            safeSetText('detailLineTitle', '月別搭乗数');
+            document.getElementById('rankingSection').classList.remove('hidden');
             try { renderFlightStackedBar('detailLineChart', chartData); } catch(e){}
-
-            const mSel = document.getElementById('monthSelector');
-            if (mSel) {
-                const monthsInPlans = [...new Set(appData.plans.map(p => p.date.substring(0, 7)))].sort();
-                const allOptions = ['planned', 'all', ...monthsInPlans];
-                if (mSel.options.length !== allOptions.length) {
-                    mSel.innerHTML = allOptions.map(m => `<option value="${m}">${m === 'all' ? '全て表示' : m === 'planned' ? '予定全区間' : m.replace('-', '年') + '月'}</option>`).join('');
-                    if (!mSel.value) mSel.value = 'planned';
-                }
-            }
-
-            let filteredTable = appData.plans;
-            if (mSel?.value === 'planned') filteredTable = filteredTable.filter(p => p.status !== '済');
-            else if (mSel?.value && mSel.value !== 'all') filteredTable = filteredTable.filter(p => p.date.substring(0, 7) === mSel.value);
-            
-            filteredTable.sort((a, b) => b.date.localeCompare(a.date));
-
             const todayStr = new Date().toISOString().split('T')[0];
             const upcoming = appData.plans.filter(p => p.status !== '済' && p.date >= todayStr).sort((a,b)=>a.date.localeCompare(b.date));
             safeSetText('stat-planned-flights', upcoming.length);
-            
-            const cardsHtml = upcoming.slice(0, 3).map(p => `
-                <div class="bg-red-50 border border-red-100 p-3 rounded-xl flex items-center gap-3 min-w-[200px]">
-                    <div class="text-red-600"><i class="fa-solid fa-plane text-xl"></i></div>
-                    <div>
-                        <p class="text-[10px] font-bold text-red-400 uppercase">${p.date} ${getDayOfWeek(p.date)}</p>
-                        <p class="text-sm font-black text-slate-800">${p.from} → ${p.to}</p>
-                        <p class="text-[10px] text-slate-500">${p.airline} ${p.flightNo}</p>
-                    </div>
-                </div>
-            `).join('') || '<p class="text-sm text-slate-400 italic">予定されているフライトはありません</p>';
-            safeSetHTML('flightCards', cardsHtml);
-
+            safeSetHTML('flightCards', upcoming.map(p => `
+                <div class="bg-red-50 border border-red-100 p-3 rounded-xl min-w-[180px]">
+                    <p class="text-[10px] font-bold text-red-400">${p.date} ${getDayOfWeek(p.date)}</p>
+                    <p class="text-xs font-black text-slate-800">${p.from} → ${p.to}</p>
+                </div>`).join('') || '<p class="text-xs text-slate-400 italic">予定なし</p>');
             const routes = {}; appData.plans.forEach(p => { if(p.status==='済'){ const r = `${p.from}→${p.to}`; routes[r] = (routes[r]||0)+1; }});
             try { renderRankingBarChart('rankingChart', Object.entries(routes).sort((a,b) => b[1] - a[1])); } catch(e){}
-
-            safeSetHTML('table-head', `<tr><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">日付/時刻</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">便名</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">区間</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-center">ステータス</th></tr>`);
-            safeSetHTML('table-body', filteredTable.map(p => `
-                <tr class="hover:bg-slate-50 transition border-b border-slate-50">
-                    <td class="p-4 text-sm font-bold">
-                        ${p.date} ${getDayOfWeek(p.date)}<br>
-                        <span class="text-slate-500 font-normal">${p.depTime || '--:--'} - ${p.arrTime || '--:--'}</span>
-                    </td>
-                    <td class="p-4 text-sm font-mono">${p.airline || ''} ${p.flightNo || ''}</td>
-                    <td class="p-4 text-sm font-bold text-slate-700">${p.from} → ${p.to}</td>
-                    <td class="p-4 text-center">
-                        <span class="px-3 py-1 rounded-full text-[10px] font-black ${p.status === '済' ? 'bg-slate-100 text-slate-400' : 'bg-red-600 text-white shadow-sm'}">${p.status}</span>
-                    </td>
-                </tr>`).join(''));
+            safeSetHTML('table-head', `<tr><th class="p-3">日付/時刻</th><th class="p-3">便名</th><th class="p-3">区間</th><th class="p-3 text-center">結果</th></tr>`);
+            safeSetHTML('table-body', appData.plans.sort((a,b)=>b.date.localeCompare(a.date)).map(p => `
+                <tr class="border-b"><td class="p-3 font-bold text-xs">${p.date}<br><span class="text-slate-400 font-normal">${p.depTime || '--:--'}</span></td>
+                <td class="p-3 text-xs font-mono">${p.airline || ''}${p.flightNo || ''}</td><td class="p-3 font-bold">${p.from}→${p.to}</td>
+                <td class="p-3 text-center"><span class="px-2 py-1 rounded-full text-[9px] font-black ${p.status==='済'?'bg-slate-100 text-slate-400':'bg-red-600 text-white'}">${p.status}</span></td></tr>`).join(''));
         }
 
-        // --- Chart Components ---
+        // --- Charts ---
         function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+        const chartOptions = (legendPos = 'right') => ({ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: legendPos, labels: { font: { size: 9, weight: 'bold' }, boxWidth: 10 } } } });
 
-        function renderStackedBar(canvasId, list, valueKey) {
-            const canvas = document.getElementById(canvasId);
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            destroyChart(canvasId);
-            const months = [...new Set(list.map(d => d.date.substring(0, 7)).filter(k => k && k !== 'undefined'))].sort();
-            const cats = [...new Set(list.map(d => d.ui_category || 'その他獲得'))].sort();
-            const colors = ['#E10009', '#1e293b', '#10b981', '#3b82f6', '#f59e0b', '#db2777', '#8b5cf6', '#94a3b8'];
-            charts[canvasId] = new Chart(ctx, { type: 'bar', data: { labels: months, datasets: cats.map((cat, i) => ({ label: cat, backgroundColor: colors[i % colors.length], data: months.map(m => list.filter(d => d.date.substring(0, 7) === m && d.ui_category === cat).reduce((s, d) => s + (d[valueKey] > 0 ? d[valueKey] : 0), 0)), borderRadius: 4 })) }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }, plugins: { legend: { position: 'right', labels: { font: { size: 9, weight: 'bold' }, boxWidth: 10 } } } } });
+        function renderMixedChart(id, labels, fop, fl) {
+            const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
+            const isMob = window.innerWidth < 768;
+            charts[id] = new Chart(ctx, { data: { labels, datasets: [{ type: 'line', label: '累計 FOP', data: fop, borderColor: '#E10009', borderWidth: 3, fill: true, backgroundColor: 'rgba(225,0,9,0.05)', tension:0.3, yAxisID: 'y' }, { type: 'bar', label: '累計 搭乗', data: fl, backgroundColor: '#1e293b', borderRadius: 4, yAxisID: 'y1' }]}, options: { ...chartOptions(isMob?'bottom':'right'), scales: { y: { beginAtZero: true }, y1: { position: 'right', beginAtZero: true, grid: { display: false } } } } });
         }
 
-        function renderMixedTrendChart(canvasId, list, barKey, lineKey, barLabel, lineLabel, barColor, lineOutline) {
-            const canvas = document.getElementById(canvasId);
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            destroyChart(canvasId);
-            const sortedList = [...list].sort((a,b) => a.date.localeCompare(b.date) || a._idx - b._idx);
-            const dates = [...new Set(sortedList.map(d => d.date))];
-            const lineData = dates.map(d => { const dayItems = sortedList.filter(i => i.date === d); return dayItems[dayItems.length - 1][lineKey]; });
-            const barData = dates.map(d => { const dayItems = sortedList.filter(i => i.date === d); return dayItems.reduce((s, i) => s + (i[barKey] > 0 ? i[barKey] : 0), 0); });
-            charts[canvasId] = new Chart(ctx, { data: { labels: dates, datasets: [{ type: 'line', label: lineLabel, data: lineData, borderColor: lineOutline, borderWidth: 3, fill: false, tension: 0.1, yAxisID: 'y', pointRadius: 1 }, { type: 'bar', label: barLabel, data: barData, backgroundColor: barColor, borderRadius: 4, yAxisID: 'y1' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { position: 'left', beginAtZero: false }, y1: { position: 'right', beginAtZero: true, grid: { display: false } } }, plugins: { legend: { position: 'top' } } } });
+        function renderPieChart(id, groups) {
+            const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
+            const labels = Object.keys(groups).sort((a,b) => groups[b] - groups[a]);
+            const isMob = window.innerWidth < 768;
+            charts[id] = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data: labels.map(l => groups[l]), backgroundColor: ['#E10009', '#1e293b', '#10b981', '#3b82f6', '#f59e0b', '#db2777', '#8b5cf6', '#94a3b8'], borderWidth: 0 }] }, options: chartOptions(isMob?'bottom':'right') });
         }
 
-        function renderFlightStackedBar(canvasId, list) {
-            const canvas = document.getElementById(canvasId);
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            destroyChart(canvasId);
+        function renderStackedBar(id, list, key) {
+            const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
+            const months = [...new Set(list.map(d => d.date.substring(0, 7)))].sort();
+            const cats = [...new Set(list.map(d => d.ui_category))].sort();
+            const colors = ['#E10009', '#1e293b', '#10b981', '#3b82f6', '#f59e0b'];
+            const isMob = window.innerWidth < 768;
+            charts[id] = new Chart(ctx, { type: 'bar', data: { labels: months, datasets: cats.map((c, i) => ({ label: c, backgroundColor: colors[i % colors.length], data: months.map(m => list.filter(d => d.date.substring(0, 7) === m && d.ui_category === c).reduce((s, d) => s + (d[key] > 0 ? d[key] : 0), 0)), borderRadius: 3 })) }, options: { ...chartOptions(isMob?'bottom':'right'), scales: { x: { stacked: true }, y: { stacked: true } } } });
+        }
+
+        function renderMixedTrendChart(id, list, bK, lK, bL, lL, bC, lO) {
+            const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
+            const sorted = [...list].sort((a,b)=>a.date.localeCompare(b.date));
+            const dates = [...new Set(sorted.map(d => d.date))];
+            const isMob = window.innerWidth < 768;
+            charts[id] = new Chart(ctx, { data: { labels: dates, datasets: [{ type: 'line', label: lL, data: dates.map(d => sorted.filter(i => i.date === d).pop()[lK]), borderColor: lO, borderWidth: 2, fill: false, pointRadius: 1, yAxisID: 'y' }, { type: 'bar', label: bL, data: dates.map(d => sorted.filter(i => i.date === d).reduce((s, i) => s + (i[bK] > 0 ? i[bK] : 0), 0)), backgroundColor: bC, yAxisID: 'y1' }] }, options: { ...chartOptions(isMob?'bottom':'right'), scales: { y: { position: 'left' }, y1: { position: 'right', grid: { display: false } } } } });
+        }
+
+        function renderFlightStackedBar(id, list) {
+            const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
             const today = new Date();
-            const months = []; for (let i = -6; i <= 6; i++) { const d = new Date(today.getFullYear(), today.getMonth() + i, 1); months.push(d.toISOString().substring(0, 7)); }
-            charts[canvasId] = new Chart(ctx, { type: 'bar', data: { labels: months.map(m => m.replace('-', '年') + '月'), datasets: [{ label: '搭乗済', backgroundColor: '#1e293b', data: months.map(m => list.filter(d => d.date.substring(0, 7) === m && d.status === '済').length), borderRadius: 4 }, { label: '搭乗予定', backgroundColor: '#E10009', data: months.map(m => list.filter(d => d.date.substring(0, 7) === m && d.status !== '済').length), borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { position: 'right', labels: { font: { size: 10, weight: 'bold' } } } } } });
+            const months = []; for (let i = -3; i <= 3; i++) { const d = new Date(today.getFullYear(), today.getMonth() + i, 1); months.push(d.toISOString().substring(0, 7)); }
+            charts[id] = new Chart(ctx, { type: 'bar', data: { labels: months, datasets: [{ label: '済', backgroundColor: '#1e293b', data: months.map(m => list.filter(d => d.date.startsWith(m) && d.status === '済').length) }, { label: '予定', backgroundColor: '#E10009', data: months.map(m => list.filter(d => d.date.startsWith(m) && d.status !== '済').length) }] }, options: { ...chartOptions('bottom'), scales: { x: { stacked: true }, y: { stacked: true, ticks: { stepSize: 1 } } } } });
         }
 
-        function renderRankingBarChart(canvasId, sortedData) {
-            const canvas = document.getElementById(canvasId);
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d'); 
-            destroyChart(canvasId);
-            charts[canvasId] = new Chart(ctx, { type: 'bar', data: { labels: sortedData.map(d => d[0]), datasets: [{ label: '搭乗回数', data: sortedData.map(d => d[1]), backgroundColor: '#E10009', borderRadius: 4 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
-        }
-
-        function renderMixedChart(canvasId, labels, fop, flights) {
-            const canvas = document.getElementById(canvasId);
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d'); 
-            destroyChart(canvasId);
-            charts[canvasId] = new Chart(ctx, { data: { labels: labels, datasets: [{ type: 'line', label: '累計 FOP', data: fop, borderColor: '#E10009', backgroundColor: 'rgba(225, 0, 9, 0.1)', borderWidth: 4, fill: true, tension: 0.3, yAxisID: 'y' }, { type: 'bar', label: '累計 搭乗数', data: flights, backgroundColor: '#1e293b', borderRadius: 6, yAxisID: 'y1' }]}, options: { responsive: true, maintainAspectRatio: false, scales: { y: { position: 'left', beginAtZero: true }, y1: { position: 'right', beginAtZero: true, grid: { display: false } } }, plugins: { legend: { position: 'top', labels: { font: { weight: 'bold' } } } } } });
-        }
-
-        function renderPieChart(canvasId, groups) {
-            const canvas = document.getElementById(canvasId);
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d'); 
-            destroyChart(canvasId);
-            const labels = Object.keys(groups).sort((a, b) => groups[b] - groups[a]); 
-            const total = Object.values(groups).reduce((a,b)=>a+b,0);
-            if (labels.length === 0) return;
-            charts[canvasId] = new Chart(ctx, { type: 'doughnut', data: { labels: labels, datasets: [{ data: labels.map(l => groups[l]), backgroundColor: ['#E10009', '#1e293b', '#10b981', '#3b82f6', '#f59e0b', '#db2777', '#8b5cf6', '#94a3b8'], borderWidth: 0 }] }, options: { rotation: 0, responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 9, weight: 'bold' }, boxWidth: 10 } }, tooltip: { callbacks: { label: (c) => ` ${c.label}: ${c.raw.toLocaleString()} (${total>0?(c.raw/total*100).toFixed(1):0}%)` } } } } });
+        function renderRankingBarChart(id, data) {
+            const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
+            charts[id] = new Chart(ctx, { type: 'bar', data: { labels: data.map(d => d[0]), datasets: [{ label: '回数', data: data.map(d => d[1]), backgroundColor: '#E10009', borderRadius: 4 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
         }
     </script>
 </body>
