@@ -1,605 +1,770 @@
-<!-- gv4.30 - GitHub Raw Auto Sync + Debug JSON (Single-file Complete) -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>JAL Status Viewer gv4.30</title>
-
-  <!-- Dependencies -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-  <style>
-    :root { --jal-red:#E10009; }
-    body { background:#f1f5f9; }
-    .sidebar { width: 260px; }
-    .card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; }
-    .btn { display:inline-flex; align-items:center; gap:.5rem; padding:.55rem .9rem; border-radius:.75rem; font-weight:800; font-size:.85rem; }
-    .btn-red { background:var(--jal-red); color:#fff; }
-    .btn-red:hover { filter:brightness(.95); }
-    .btn-slate { background:#0f172a; color:#fff; }
-    .btn-slate:hover { filter:brightness(1.08); }
-    .btn-outline { border:1px solid #cbd5e1; background:#fff; color:#0f172a; }
-    .btn-outline:hover { background:#f8fafc; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-    pre { white-space: pre-wrap; word-break: break-word; }
-    .badge { font-size:.75rem; font-weight:900; padding:.2rem .55rem; border-radius:999px; }
-    .badge-ok { background:#dcfce7; color:#166534; }
-    .badge-ng { background:#fee2e2; color:#991b1b; }
-    .badge-warn { background:#ffedd5; color:#9a3412; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JAL Status & Flight Manager Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --jal-red: #E10009;
+            --jal-black: #000000;
+        }
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f1f5f9;
+        }
+        #sidebar {
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 64px;
+        }
+        #sidebar.expanded {
+            width: 260px;
+        }
+        .sidebar-label {
+            display: none;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .expanded .sidebar-label {
+            display: inline;
+            opacity: 1;
+        }
+        .nav-item.active {
+            background-color: var(--jal-red);
+            color: white;
+            box-shadow: 0 4px 12px rgba(225, 0, 9, 0.2);
+        }
+        .nav-item:not(.active):hover {
+            background-color: #1e293b;
+            color: white;
+        }
+        .stat-card {
+            border-left: 4px solid var(--jal-red);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        canvas {
+            max-height: 320px;
+        }
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        select, input[type="date"] {
+            border: 1px solid #e2e8f0;
+            padding: 0.4rem 0.6rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background-color: #fff;
+            color: #475569;
+        }
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #f8fafc;
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+        }
+        /* Status & Debug Styles (Integrated into existing UI style) */
+        #loadStatus { font-size: 10px; font-weight: 800; text-transform: uppercase; }
+        .debug-area { font-family: monospace; font-size: 10px; line-height: 1.2; background: #1e293b; color: #10b981; padding: 10px; border-radius: 8px; max-height: 120px; overflow: auto; }
+    </style>
 </head>
+<body class="flex h-screen overflow-hidden">
 
-<body class="h-screen overflow-hidden">
-  <!-- Top Bar -->
-  <header class="h-14 bg-slate-900 text-white flex items-center justify-between px-4">
-    <div class="flex items-center gap-3">
-      <i class="fa-solid fa-plane text-[var(--jal-red)]"></i>
-      <div class="font-black tracking-tight">JAL Status Viewer <span class="ml-2 text-slate-300 font-extrabold">gv4.30</span></div>
-    </div>
-    <div class="flex items-center gap-2">
-      <button id="btnSync" class="btn btn-red">
-        <i class="fa-solid fa-rotate"></i> 自動URLから同期
-      </button>
-
-      <label class="btn btn-outline cursor-pointer">
-        <i class="fa-solid fa-file-excel text-emerald-600"></i> ローカルExcel
-        <input id="fileInput" type="file" class="hidden" accept=".xlsx,.xls,.csv"/>
-      </label>
-    </div>
-  </header>
-
-  <div class="flex h-[calc(100vh-56px)]">
     <!-- Sidebar -->
-    <aside class="sidebar bg-white border-r border-slate-200 p-4 overflow-y-auto">
-      <div class="card p-4">
-        <div class="flex items-center justify-between">
-          <div class="font-black text-slate-800">自動読み込みURL</div>
-          <span id="urlBadge" class="badge badge-warn">未同期</span>
+    <aside id="sidebar" class="bg-[#0f172a] text-slate-400 flex flex-col h-full z-50 shadow-2xl shrink-0">
+        <div class="h-16 flex items-center px-4 border-b border-slate-800 shrink-0">
+            <button id="toggleBtn" class="text-xl hover:text-white transition-colors w-8 h-8 flex items-center justify-center">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <span class="sidebar-label ml-4 font-bold text-white text-lg tracking-tight">JAL Asset Manager</span>
         </div>
-        <p class="text-xs text-slate-500 mt-2">
-          このURLのExcelを fetch して解析します（GitHub Raw 推奨）。
-        </p>
-        <textarea id="urlInput" class="w-full mt-3 p-3 text-xs rounded-xl border border-slate-200 mono" rows="4"></textarea>
-        <div class="flex gap-2 mt-3">
-          <button id="btnCopyUrl" class="btn btn-outline text-xs">
-            <i class="fa-regular fa-copy"></i> URLコピー
-          </button>
-          <button id="btnTestUrl" class="btn btn-slate text-xs">
-            <i class="fa-solid fa-bug"></i> 接続テスト
-          </button>
-        </div>
-      </div>
+        
+        <nav class="flex-1 mt-6 space-y-2 px-3 overflow-y-auto">
+            <button onclick="switchTab('dashboard')" class="nav-item w-full flex items-center p-3 rounded-xl transition-all active" data-tab="dashboard">
+                <i class="fa-solid fa-gauge-high w-6 text-center text-lg"></i>
+                <span class="sidebar-label ml-3 font-medium">ダッシュボード</span>
+            </button>
+            <button onclick="switchTab('miles')" class="nav-item w-full flex items-center p-3 rounded-xl transition-all" data-tab="miles">
+                <i class="fa-solid fa-award w-6 text-center text-lg"></i>
+                <span class="sidebar-label ml-3 font-medium">マイル管理</span>
+            </button>
+            <button onclick="switchTab('lsp')" class="nav-item w-full flex items-center p-3 rounded-xl transition-all" data-tab="lsp">
+                <i class="fa-solid fa-star-half-stroke w-6 text-center text-lg"></i>
+                <span class="sidebar-label ml-3 font-medium">LSP管理</span>
+            </button>
+            <button onclick="switchTab('flights')" class="nav-item w-full flex items-center p-3 rounded-xl transition-all" data-tab="flights">
+                <i class="fa-solid fa-plane-departure w-6 text-center text-lg"></i>
+                <span class="sidebar-label ml-3 font-medium">フライト管理</span>
+            </button>
 
-      <div class="card p-4 mt-4">
-        <div class="font-black text-slate-800 mb-2">直近読み込み状況</div>
-        <div id="statusBox" class="text-xs text-slate-700 space-y-1"></div>
-      </div>
+            <!-- URL Sync Button (Added Logic based on requirements) -->
+            <div class="sidebar-label pt-4 px-3">
+                <button onclick="syncFromUrl()" id="syncBtn" class="w-full bg-red-600 hover:bg-red-700 text-white text-xs font-black py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-down"></i>
+                    <span>自動URLから同期</span>
+                </button>
+                <div class="mt-3 p-2 bg-slate-800/50 rounded-lg">
+                    <p class="text-[9px] text-slate-500 font-bold mb-1">直近読み込み状況</p>
+                    <p id="loadStatus" class="text-blue-400">READY</p>
+                </div>
+            </div>
+        </nav>
+
+        <div class="p-3 border-t border-slate-800">
+            <label class="flex items-center p-3 cursor-pointer hover:bg-slate-800 rounded-xl transition overflow-hidden group">
+                <i class="fa-solid fa-file-excel w-6 text-center text-emerald-400 text-lg"></i>
+                <span class="sidebar-label ml-3 font-medium text-slate-300 group-hover:text-white">Excel読込</span>
+                <input type="file" id="fileInput" multiple class="hidden" accept=".xlsx, .csv">
+            </label>
+            <!-- Debug Box -->
+            <div class="sidebar-label mt-2 px-1">
+                <div id="debugJsonBox" class="debug-area hidden">{}</div>
+            </div>
+        </div>
     </aside>
 
-    <!-- Main -->
-    <main class="flex-1 p-6 overflow-y-auto">
-      <!-- Stats -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="card p-4">
-          <div class="text-[10px] font-black text-slate-400 tracking-widest">MILES</div>
-          <div id="statMiles" class="text-3xl font-black text-slate-800 mt-2">0</div>
-        </div>
-        <div class="card p-4">
-          <div class="text-[10px] font-black text-slate-400 tracking-widest">LSP</div>
-          <div id="statLsp" class="text-3xl font-black text-slate-800 mt-2">0</div>
-        </div>
-        <div class="card p-4">
-          <div class="text-[10px] font-black text-slate-400 tracking-widest">FOP (THIS YEAR)</div>
-          <div id="statFop" class="text-3xl font-black text-slate-800 mt-2">0</div>
-        </div>
-        <div class="card p-4">
-          <div class="text-[10px] font-black text-slate-400 tracking-widest">FLIGHTS (THIS YEAR)</div>
-          <div id="statFlights" class="text-3xl font-black text-slate-800 mt-2">0</div>
-        </div>
-      </div>
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full min-w-0">
+        <header class="h-16 bg-white border-b flex items-center justify-between px-8 shrink-0 shadow-sm z-10">
+            <div class="flex items-center gap-4">
+                <h2 id="tabTitle" class="text-xl font-extrabold text-slate-800 tracking-tight">ダッシュボード</h2>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white border-2 border-white shadow-md">
+                    <i class="fa-solid fa-user-tie"></i>
+                </div>
+            </div>
+        </header>
 
-      <!-- Charts -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-        <div class="card p-4">
-          <div class="font-black text-slate-800 flex items-center gap-2">
-            <i class="fa-solid fa-chart-pie text-[var(--jal-red)]"></i> マイル内訳（簡易）
-          </div>
-          <div class="h-64 mt-3"><canvas id="milePie"></canvas></div>
-        </div>
-        <div class="card p-4">
-          <div class="font-black text-slate-800 flex items-center gap-2">
-            <i class="fa-solid fa-chart-pie text-blue-600"></i> LSP内訳（簡易）
-          </div>
-          <div class="h-64 mt-3"><canvas id="lspPie"></canvas></div>
-        </div>
-      </div>
+        <div id="content" class="flex-1 overflow-y-auto p-6 md:p-8">
+            
+            <!-- DASHBOARD TAB -->
+            <div id="tab-dashboard" class="tab-content active space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm stat-card border-l-[#E10009]">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Current Miles</p>
+                        <div class="flex items-baseline gap-2"><span id="stat-miles" class="text-3xl font-black text-slate-800">0</span><span class="text-xs font-bold text-slate-400">mile</span></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm stat-card border-l-blue-500">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Life Status Points</p>
+                        <div class="flex items-baseline gap-2"><span id="stat-lsp" class="text-3xl font-black text-slate-800">0</span><span class="text-xs font-bold text-slate-400">pts</span></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm stat-card border-l-orange-500">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Yearly FLY ON</p>
+                        <div class="flex items-baseline gap-2"><span id="stat-fop" class="text-3xl font-black text-slate-800">0</span><span class="text-xs font-bold text-slate-400">FOP</span></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm stat-card border-l-emerald-500">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Yearly Flights</p>
+                        <div class="flex items-baseline gap-2"><span id="stat-yearly-flights" class="text-3xl font-black text-slate-800">0</span><span class="text-xs font-bold text-slate-400">回</span></div>
+                    </div>
+                </div>
 
-      <!-- Debug JSON -->
-      <div class="card p-4 mt-4">
-        <div class="flex items-center justify-between">
-          <div class="font-black text-slate-800 flex items-center gap-2">
-            <i class="fa-solid fa-code text-slate-700"></i> Debug JSON
-          </div>
-          <div class="flex gap-2">
-            <button id="btnCopyDebug" class="btn btn-outline text-xs">
-              <i class="fa-regular fa-copy"></i> Debugコピー
-            </button>
-            <button id="btnClearDebug" class="btn btn-outline text-xs">
-              <i class="fa-regular fa-trash-can"></i> クリア
-            </button>
-          </div>
+                <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100">
+                    <h3 class="font-black text-slate-800 flex items-center gap-2 mb-6">
+                        <i class="fa-solid fa-chart-line text-[#E10009]"></i> 
+                        <span>本年度ステータス進捗</span> (1月-12月 累計推移)
+                    </h3>
+                    <div class="h-80"><canvas id="annualTrendChart"></canvas></div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100">
+                        <h3 class="font-black text-slate-800 flex items-center gap-2 mb-6"><i class="fa-solid fa-chart-pie text-red-500"></i> <span id="dash-mile-pie-title">獲得マイル種別内訳 (全期間)</span></h3>
+                        <div class="h-64"><canvas id="milePieChart"></canvas></div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100">
+                        <h3 class="font-black text-slate-800 flex items-center gap-2 mb-6"><i class="fa-solid fa-chart-pie text-blue-500"></i> <span id="dash-lsp-pie-title">LSP獲得種別内訳 (全期間)</span></h3>
+                        <div class="h-64"><canvas id="lspPieChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DETAIL TAB (Miles/LSP/Flights common) -->
+            <div id="tab-detail" class="tab-content space-y-8">
+                <div id="flightSummarySection" class="grid grid-cols-1 lg:grid-cols-3 gap-6 hidden">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Upcoming Flights</p>
+                        <div class="flex items-baseline gap-2">
+                            <span id="stat-planned-flights" class="text-4xl font-black text-red-600">0</span>
+                            <span class="text-sm font-bold text-slate-400">今後の搭乗予定</span>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Next Schedule</p>
+                        <div id="flightCards" class="flex flex-wrap gap-4">
+                            <p class="text-sm text-slate-400 italic">予定されているフライトはありません</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" id="analysisGrid">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100" id="pieChartContainer">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-black text-slate-800 flex items-center gap-2" id="detailPieTitle">内訳</h3>
+                            <div class="text-xs font-black text-red-600 bg-red-50 px-3 py-1 rounded-full shadow-sm" id="totalEarnedValue">合計: 0</div>
+                        </div>
+                        <div class="h-64"><canvas id="detailPieChart"></canvas></div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100 transition-all duration-500" id="lineChartContainer">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-black text-slate-800 flex items-center gap-2" id="detailLineTitle">月別獲得実績</h3>
+                            <div class="filter-group">
+                                <input type="date" id="chartFilterStart" onchange="updateUI()">
+                                <span class="text-slate-300 font-bold">~</span>
+                                <input type="date" id="chartFilterEnd" onchange="updateUI()">
+                            </div>
+                        </div>
+                        <div class="h-64"><canvas id="detailLineChart"></canvas></div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100 hidden lg:col-span-2" id="mileTrendSection">
+                        <h3 class="font-black text-slate-800 flex items-center gap-2 mb-6"><i class="fa-solid fa-chart-line text-[#E10009]"></i> マイル保有推移 & 月別獲得</h3>
+                        <div class="h-80"><canvas id="mileMixedChart"></canvas></div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100 hidden lg:col-span-2" id="lspTrendSection">
+                        <h3 class="font-black text-slate-800 flex items-center gap-2 mb-6"><i class="fa-solid fa-chart-line text-blue-500"></i> LSP累積推移 & 月別獲得</h3>
+                        <div class="h-80"><canvas id="lspMixedChart"></canvas></div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100 hidden lg:col-span-2" id="rankingSection">
+                        <h3 class="font-black text-slate-800 flex items-center gap-2 mb-6"><i class="fa-solid fa-trophy text-amber-500"></i> 区間ランキング</h3>
+                        <div class="h-80"><canvas id="rankingChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-4 border-b border-slate-50 flex flex-wrap items-center justify-between gap-4">
+                        <h3 class="font-bold text-slate-800">データ明細</h3>
+                        <div class="flex flex-wrap gap-3">
+                            <div id="monthFilterGroup" class="filter-group hidden">
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">絞り込み:</span>
+                                <select id="monthSelector" onchange="updateUI()"></select>
+                            </div>
+                            <div id="categoryFilterGroup" class="filter-group">
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">カテゴリ:</span>
+                                <select id="categorySelector" onchange="updateUI()"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="w-full text-left border-collapse">
+                            <thead id="table-head" class="sticky top-0 bg-white z-10 shadow-sm"></thead>
+                            <tbody id="table-body" class="divide-y divide-slate-50"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </div>
-        <pre id="debugJson" class="mono text-xs mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl min-h-[160px]"></pre>
-        <p class="text-xs text-slate-500 mt-2">
-          ここが空のままなら、読み込み処理が走っていない or 途中で例外停止しています。必ず理由が出る設計です。
-        </p>
-      </div>
     </main>
-  </div>
 
-<script>
-/**
- * gv4.30
- * - GitHub Raw URLのExcelを自動取得
- * - 失敗しても必ず Debug JSON と status に出す
- * - ローカルExcelも引き続き読める
- */
+    <script>
+        // --- State Management ---
+        let appData = { plans: [], lsp: [], miles: [], stats: { miles: 0, lsp: 0, fop: 0, yearlyFlights: 0, plannedFlights: 0 } };
+        let currentTab = 'dashboard';
+        let charts = {};
+        let activeFilters = { category: 'all' };
+        let lastDebugJson = {};
 
-// ✅ 推奨：raw.githubusercontent.com 形式（安定）
-const DEFAULT_AUTO_URL =
-  "https://raw.githubusercontent.com/mineo1178/jal-status-viewer/main/data/20251229_LSP%E7%AE%A1%E7%90%86.xlsx";
+        const EXCEL_URL = "https://raw.githubusercontent.com/mineo1178/jal-status-viewer/main/data/20251229_LSP%E7%AE%A1%E7%90%86.xlsx";
 
-let charts = { milePie: null, lspPie: null };
+        const safeSetText = (id, text) => { const el = document.getElementById(id); if (el) el.innerText = text; };
+        const safeSetHTML = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
 
-const appData = {
-  miles: [], // {date, content, gain, total, fop, flight_count, ui_category}
-  lsp: [],   // {date, category, service, content, points, total, ui_category}
-  plans: [], // {date, from, to, flightNo, depTime, arrTime, status, airline}
-  stats: { miles:0, lsp:0, fop:0, flights:0 }
-};
+        function setStatus(phase, message = "") {
+            const el = document.getElementById('loadStatus');
+            if (!el) return;
+            const colors = { start: 'text-slate-400', fetch: 'text-yellow-400', parse: 'text-orange-400', ui: 'text-blue-400', done: 'text-emerald-400', error: 'text-red-500' };
+            el.className = colors[phase] || 'text-slate-400';
+            el.innerText = phase.toUpperCase() + (message ? `: ${message}` : "");
+        }
 
-const el = (id) => document.getElementById(id);
+        function showDebug() {
+            const box = document.getElementById('debugJsonBox');
+            if (box) {
+                box.classList.remove('hidden');
+                box.innerText = JSON.stringify(lastDebugJson, null, 2);
+            }
+        }
 
-function nowTime() {
-  const d = new Date();
-  const hh = String(d.getHours()).padStart(2,'0');
-  const mm = String(d.getMinutes()).padStart(2,'0');
-  const ss = String(d.getSeconds()).padStart(2,'0');
-  return `${hh}:${mm}:${ss}`;
-}
+        // --- Helpers ---
+        function parseDate(val) {
+            if (!val) return "";
+            if (val instanceof Date) {
+                const y = val.getFullYear();
+                const m = String(val.getMonth() + 1).padStart(2, '0');
+                const d = String(val.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+            if (typeof val === 'number') { 
+                const d = new Date((val - 25569) * 86400 * 1000); 
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+            }
+            let str = String(val).replace(/ /g, '').replace(/　/g, '');
+            if (str.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) return str;
+            if (str.match(/^\d{4}\/\d{1,2}\/\d{1,2}$/)) return str.replace(/\//g, '-');
+            return str;
+        }
 
-function pushStatus(msg, kind="info") {
-  const box = el("statusBox");
-  const color = kind==="ok" ? "text-emerald-700" : kind==="ng" ? "text-red-700" : "text-slate-700";
-  const line = document.createElement("div");
-  line.className = `flex gap-2 ${color}`;
-  line.innerHTML = `<span class="font-black w-[54px]">${nowTime()}</span><span class="flex-1">${escapeHtml(msg)}</span>`;
-  box.prepend(line);
-}
+        function getDayOfWeek(dateStr) {
+            if(!dateStr) return "";
+            const days = ["日", "月", "火", "水", "木", "金", "土"];
+            const parts = dateStr.split('-');
+            if(parts.length < 3) return "";
+            const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+            return isNaN(d.getTime()) ? "" : `(${days[d.getDay()]})`;
+        }
 
-function setBadge(state) {
-  const b = el("urlBadge");
-  b.classList.remove("badge-ok","badge-ng","badge-warn");
-  if (state==="ok") { b.classList.add("badge-ok"); b.textContent="同期OK"; }
-  else if (state==="ng") { b.classList.add("badge-ng"); b.textContent="同期NG"; }
-  else { b.classList.add("badge-warn"); b.textContent="未同期"; }
-}
-
-function setDebug(obj) {
-  el("debugJson").textContent = JSON.stringify(obj, null, 2);
-}
-
-function clearDebug() {
-  el("debugJson").textContent = "";
-}
-
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, s => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[s]));
-}
-
-function parseDate(val) {
-  if (!val) return "";
-  // Date object
-  if (val instanceof Date) {
-    return val.toISOString().split("T")[0];
-  }
-  // Excel serial
-  if (typeof val === "number") {
-    const d = new Date((val - 25569) * 86400 * 1000);
-    return isNaN(d.getTime()) ? "" : d.toISOString().split("T")[0];
-  }
-  // String
-  const s = String(val).trim();
-  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) return s;
-  if (/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(s)) return s.replaceAll("/","-");
-  return s;
-}
-
-// ===== Sheet detection & parsing =====
-function findHeaderRow(rows, keywords) {
-  return rows.findIndex(r =>
-    Array.isArray(r) && r.some(c =>
-      typeof c === "string" && keywords.some(k => c.includes(k))
-    )
-  );
-}
-
-function safeIndexOf(headerRow, colName) {
-  if (!headerRow) return -1;
-  return headerRow.findIndex(c => String(c||"").trim() === colName);
-}
-
-function categorizeMile(content) {
-  const c = String(content || "");
-  if (c.match(/[A-Z]{2,3}\d+/) || ["羽田","那覇","福岡","石垣","宮古","成田","伊丹","HND","FUK","OKA"].some(k => c.includes(k))) return "フライト獲得";
-  if (c.includes("カード") || c.includes("ClubQ") || c.includes("JALカード")) return "JALカード決済";
-  if (c.toLowerCase().includes("wellness")) return "Wellness";
-  return "その他獲得";
-}
-
-function categorizeLSP(category, service) {
-  const cat = String(category||"");
-  const serv = String(service||"");
-  if (cat.includes("航空")) return serv.includes("国内") ? "航空: 国内線" : "航空: その他";
-  if (cat.includes("ライフ")) return "ライフスタイル";
-  return "その他獲得";
-}
-
-function resetDataKeepStats() {
-  appData.miles = [];
-  appData.lsp = [];
-  appData.plans = [];
-  appData.stats = { miles:0, lsp:0, fop:0, flights:0 };
-}
-
-function parseWorkbook(wb, rawRowsBySheet) {
-  resetDataKeepStats();
-
-  // Parse each sheet with flexible header detection
-  wb.SheetNames.forEach(sheetName => {
-    const rows = rawRowsBySheet[sheetName] || [];
-    if (!rows || rows.length === 0) return;
-
-    // LSP
-    let idx = findHeaderRow(rows, ["積算日"]);
-    if (idx !== -1) {
-      const h = rows[idx];
-      const iDate = safeIndexOf(h, "積算日");
-      const iCat  = safeIndexOf(h, "カテゴリー");
-      const iServ = safeIndexOf(h, "サービス");
-      const iCont = safeIndexOf(h, "内容");
-      const iPts  = safeIndexOf(h, "ポイント");
-      const iTot  = safeIndexOf(h, "累積ポイント");
-
-      const body = rows.slice(idx+1).filter(r => r && r[iDate]);
-      appData.lsp = body.map((r, k) => {
-        const date = parseDate(r[iDate]);
-        const category = r[iCat] ?? "不明";
-        const service  = r[iServ] ?? "不明";
-        const content  = r[iCont] ?? "";
-        const points   = Number(r[iPts]) || 0;
-        const total    = Number(r[iTot]) || 0;
-        return {
-          _idx:k, date, category, service, content, points, total,
-          ui_category: categorizeLSP(category, service)
+        // --- Initialization ---
+        window.onload = () => {
+            const today = new Date();
+            const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(today.getMonth() - 6);
+            if (document.getElementById('chartFilterStart')) document.getElementById('chartFilterStart').value = sixMonthsAgo.toISOString().split('T')[0];
+            if (document.getElementById('chartFilterEnd')) document.getElementById('chartFilterEnd').value = today.toISOString().split('T')[0];
         };
-      }).filter(x => /^\d{4}/.test(x.date));
-      return;
-    }
 
-    // Miles
-    idx = findHeaderRow(rows, ["有効マイル"]);
-    if (idx !== -1) {
-      const h = rows[idx];
+        // --- Navigation ---
+        document.getElementById('toggleBtn').addEventListener('click', () => { document.getElementById('sidebar').classList.toggle('expanded'); });
 
-      // よくある配置（あなたの旧版に合わせる）
-      // A:日付 B:内容 ... H:獲得 I:有効(合計) J:FOP K:搭乗回数
-      const body = rows.slice(idx+1).filter(r => r && r[0]);
-      appData.miles = body.map((r, k) => {
-        const date = parseDate(r[0]);
-        const content = r[1] ?? "";
-        const gain = parseInt(r[7]) || 0;
-        const total = parseInt(r[8]) || 0;
-        const fop = parseInt(r[9]) || 0;
-        const flight_count = parseInt(r[10]) || 0;
-        return {
-          _idx:k, date, content, gain, total, fop, flight_count,
-          ui_category: categorizeMile(content)
-        };
-      }).filter(x => /^\d{4}/.test(x.date));
-      return;
-    }
+        function switchTab(tabId) {
+            currentTab = tabId;
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.tab === tabId));
+            document.getElementById('tabTitle').innerText = { 'dashboard': 'ダッシュボード', 'miles': 'マイル管理', 'lsp': 'LSP管理', 'flights': 'フライト管理' }[tabId];
+            
+            const dashTab = document.getElementById('tab-dashboard');
+            const detailTab = document.getElementById('tab-detail');
+            const pieContainer = document.getElementById('pieChartContainer');
+            const lineContainer = document.getElementById('lineChartContainer');
+            const flightSummary = document.getElementById('flightSummarySection');
+            const mileTrend = document.getElementById('mileTrendSection');
+            const lspTrend = document.getElementById('lspTrendSection');
 
-    // Plans
-    idx = findHeaderRow(rows, ["出発地"]);
-    if (idx !== -1) {
-      const h = rows[idx];
-      const iDate = safeIndexOf(h, "日付");
-      const iAir  = safeIndexOf(h, "運航会社");
-      const iNo   = safeIndexOf(h, "便名");
-      const iFrom = safeIndexOf(h, "出発地");
-      const iTo   = safeIndexOf(h, "到着地");
-      const iDep  = safeIndexOf(h, "出発時刻");
-      const iArr  = safeIndexOf(h, "到着時刻");
-      const iSt   = safeIndexOf(h, "結果");
+            if (dashTab) dashTab.classList.toggle('active', tabId === 'dashboard');
+            if (detailTab) detailTab.classList.toggle('active', tabId !== 'dashboard');
+            
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(today.getMonth() - 6);
+            const sixMonthsLater = new Date(); sixMonthsLater.setMonth(today.getMonth() + 6);
 
-      const body = rows.slice(idx+1).filter(r => r && r[iDate]);
-      appData.plans = body.map((r) => ({
-        date: parseDate(r[iDate]),
-        airline: r[iAir] ?? "",
-        flightNo: r[iNo] ?? "",
-        from: r[iFrom] ?? "",
-        to: r[iTo] ?? "",
-        depTime: r[iDep] ?? "",
-        arrTime: r[iArr] ?? "",
-        status: r[iSt] ?? "予定"
-      })).filter(x => /^\d{4}/.test(x.date));
-      return;
-    }
-  });
+            if (pieContainer) pieContainer.classList.remove('hidden');
+            if (lineContainer) lineContainer.classList.remove('lg:col-span-2');
+            if (flightSummary) flightSummary.classList.add('hidden');
+            if (mileTrend) mileTrend.classList.add('hidden');
+            if (lspTrend) lspTrend.classList.add('hidden');
 
-  // Stats compute
-  const year = String(new Date().getFullYear());
+            if (tabId === 'flights') {
+                if (pieContainer) pieContainer.classList.add('hidden');
+                if (lineContainer) lineContainer.classList.add('lg:col-span-2');
+                if (flightSummary) flightSummary.classList.remove('hidden');
+            } else if (tabId === 'miles') {
+                if (mileTrend) mileTrend.classList.remove('hidden');
+            } else if (tabId === 'lsp') {
+                if (lspTrend) lspTrend.classList.remove('hidden');
+            }
+            updateUI();
+        }
 
-  if (appData.miles.length > 0) {
-    const latest = [...appData.miles].sort((a,b)=> b.date.localeCompare(a.date) || (b._idx-a._idx))[0];
-    appData.stats.miles = latest.total || 0;
+        // --- Data Fetching ---
+        async function syncFromUrl() {
+            setStatus('start');
+            try {
+                setStatus('fetch');
+                const response = await fetch(EXCEL_URL);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const buffer = await response.arrayBuffer();
+                lastDebugJson.fetch = { ok: true, status: response.status, bytes: buffer.byteLength };
+                
+                setStatus('parse');
+                const wb = XLSX.read(buffer, { cellDates: true });
+                lastDebugJson.sheetNames = wb.SheetNames;
+                
+                wb.SheetNames.forEach(name => {
+                    const ws = wb.Sheets[name];
+                    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                    processRows(name, rows);
+                });
+                
+                lastDebugJson.parseCounts = { miles: appData.miles.length, lsp: appData.lsp.length, plans: appData.plans.length };
+                
+                setStatus('ui');
+                updateUI();
+                setStatus('done');
+                showDebug();
+            } catch (e) {
+                console.error(e);
+                setStatus('error', e.message);
+                lastDebugJson.error = e.message;
+                showDebug();
+            }
+        }
 
-    const ym = appData.miles.filter(m => String(m.date).startsWith(year));
-    appData.stats.fop = ym.reduce((s,m)=> s + (m.fop||0), 0);
-    appData.stats.flights = ym.reduce((s,m)=> s + (m.flight_count||0), 0);
-  }
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            setStatus('start');
+            const files = Array.from(e.target.files);
+            for (const file of files) {
+                try {
+                    const buffer = await file.arrayBuffer();
+                    const wb = XLSX.read(buffer, { cellDates: true });
+                    wb.SheetNames.forEach(name => {
+                        const ws = wb.Sheets[name];
+                        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                        processRows(name, rows);
+                    });
+                } catch (err) { setStatus('error', err.message); }
+            }
+            updateUI();
+            setStatus('done');
+        });
 
-  if (appData.lsp.length > 0) {
-    const latest = [...appData.lsp].sort((a,b)=> b.date.localeCompare(a.date) || (b._idx-a._idx))[0];
-    appData.stats.lsp = latest.total || 0;
-  }
-}
+        function processRows(sheetName, rows) {
+            const findHeader = (kw) => rows.findIndex(r => r && r.some(c => typeof c === 'string' && kw.some(k => c.includes(k))));
+            
+            if (sheetName.includes('LSP') || findHeader(['積算日']) !== -1) {
+                const idx = findHeader(['積算日']); 
+                if (idx === -1) return;
+                const h = rows[idx];
+                const dateIdx = h.indexOf('積算日');
+                const validRows = rows.slice(idx + 1).filter(r => r && r[dateIdx] && r[dateIdx] !== "");
+                appData.lsp = validRows.map((r, i) => {
+                    const o = { 
+                        _idx: i,
+                        date: parseDate(r[dateIdx]), 
+                        category: r[h.indexOf('カテゴリー')] || '不明', 
+                        service: r[h.indexOf('サービス')] || '不明', 
+                        content: r[h.indexOf('内容')], 
+                        points: parseFloat(r[h.indexOf('ポイント')]) || 0, 
+                        total: parseFloat(r[h.indexOf('累積ポイント')]) || 0 
+                    };
+                    o.ui_category = categorizeLSP(o); return o;
+                }).filter(i => i.date && i.date.match(/^\d{4}/));
+            }
+            else if (sheetName.includes('マイル') || findHeader(['有効マイル']) !== -1) {
+                const idx = findHeader(['有効マイル']); 
+                if (idx === -1) return;
+                const h = rows[idx];
+                const validRows = rows.slice(idx + 1).filter(r => r && r[0]);
+                appData.miles = validRows.map((r, i) => {
+                    const o = { 
+                        _idx: i,
+                        date: parseDate(r[0]), 
+                        content: r[1], 
+                        gain: parseInt(r[7]) || 0, 
+                        total: parseInt(r[8]) || 0, 
+                        fop: parseInt(r[9]) || 0, 
+                        flight_count: parseInt(r[10]) || 0 
+                    };
+                    o.ui_category = categorizeMile(o.content); return o;
+                }).filter(i => i.date && i.date.match(/^\d{4}/));
+            }
+            else if (sheetName.includes('計画') || findHeader(['出発地']) !== -1) {
+                const idx = findHeader(['出発地']); if (idx === -1) return;
+                const h = rows[idx];
+                appData.plans = rows.slice(idx + 1).filter(r => r && r[h.indexOf('日付')]).map(r => ({
+                    date: parseDate(r[h.indexOf('日付')]), airline: r[h.indexOf('運航会社')], flightNo: r[h.indexOf('便名')], from: r[h.indexOf('出発地')], to: r[h.indexOf('到着地')], depTime: r[h.indexOf('出発時刻')], arrTime: r[h.indexOf('到着時刻')], status: r[h.indexOf('結果')] || '予定'
+                })).filter(i => i.date && i.date.match(/^\d{4}/));
+            }
+        }
 
-function updateUI() {
-  el("statMiles").textContent   = (appData.stats.miles||0).toLocaleString();
-  el("statLsp").textContent     = (appData.stats.lsp||0).toLocaleString();
-  el("statFop").textContent     = (appData.stats.fop||0).toLocaleString();
-  el("statFlights").textContent = (appData.stats.flights||0).toLocaleString();
+        function categorizeMile(content) {
+            const c = String(content || "その他獲得");
+            if (c.match(/[A-Z]{2,3}\d+/) || ["羽田","那覇","福岡","石垣","宮古","成田","伊丹","HND","FUK","OKA"].some(k => c.includes(k))) return "フライト獲得";
+            if (c.includes("カード") || c.includes("ClubQ") || c.includes("ＰＯＩＮＴ")) return "JALカード決済";
+            if (c.includes("Wellness") || c.includes("ＷＥＬＬＮＥＳＳ")) return "Wellness";
+            if (c.includes("キャンペーン") || c.includes("ボーナス") || c.includes("プレゼント")) return "特典/CP";
+            if (c.includes("ホテル") || c.includes("宿泊") || c.includes("予約")) return "宿泊・旅行";
+            if (c.includes("ポイント") || c.includes("交換") || c.includes("Ｐｏｎｔａ")) return "ポイント連携";
+            return "その他獲得";
+        }
 
-  renderPie("milePie", groupSum(appData.miles, "ui_category", (x)=> Math.max(0, x.gain||0)));
-  renderPie("lspPie", groupSum(appData.lsp, "ui_category", (x)=> x.points||0));
-}
+        function categorizeLSP(item) {
+            const cat = String(item.category || ""); const serv = String(item.service || "");
+            if (cat.includes("航空")) return serv.includes("国内") ? "航空: 国内線" : "航空: その他";
+            if (cat.includes("ライフ")) {
+                if(serv.includes("カード")) return "ライフ: カード";
+                if(serv.includes("モバイル")) return "ライフ: モバイル";
+                if(serv.includes("Wellness")) return "ライフ: Wellness";
+                return "ライフ: その他";
+            }
+            return "その他獲得";
+        }
 
-function groupSum(arr, key, valueFn) {
-  const g = {};
-  for (const item of arr) {
-    const k = String(item[key] ?? "不明");
-    g[k] = (g[k] || 0) + (valueFn(item) || 0);
-  }
-  return g;
-}
+        function updateUI() {
+            const now = new Date();
+            const currentYear = now.getFullYear().toString();
+            const todayStr = now.toISOString().split('T')[0];
 
-function renderPie(canvasId, groups) {
-  const ctx = el(canvasId).getContext("2d");
-  const labels = Object.keys(groups).sort((a,b)=> groups[b]-groups[a]);
-  const data = labels.map(l => groups[l]);
+            if (appData.miles.length > 0) {
+                const s = [...appData.miles].sort((a,b) => b.date.localeCompare(a.date) || b._idx - a._idx);
+                appData.stats.miles = s[0].total; 
+                const ym = appData.miles.filter(m => m.date.startsWith(currentYear));
+                appData.stats.fop = ym.reduce((sum, m) => sum + (parseInt(m.fop)||0), 0);
+                appData.stats.yearlyFlights = ym.reduce((sum, m) => sum + (parseInt(m.flight_count)||0), 0);
+            }
+            if (appData.lsp.length > 0) { 
+                const s = [...appData.lsp].sort((a,b) => b.date.localeCompare(a.date) || b._idx - a._idx);
+                appData.stats.lsp = s[0].total; 
+            }
+            if (appData.plans.length > 0) {
+                appData.stats.plannedFlights = appData.plans.filter(p => p.status !== '済' && p.date >= todayStr).length;
+            }
 
-  if (charts[canvasId]) charts[canvasId].destroy();
+            lastDebugJson.stats = appData.stats;
 
-  charts[canvasId] = new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      labels,
-      datasets: [{ data }]
-    },
-    options: {
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins: {
-        legend: { position:"bottom" }
-      }
-    }
-  });
-}
+            // 数値カード更新（最優先）
+            safeSetText('stat-miles', appData.stats.miles.toLocaleString());
+            safeSetText('stat-lsp', appData.stats.lsp.toLocaleString());
+            safeSetText('stat-fop', appData.stats.fop.toLocaleString());
+            safeSetText('stat-yearly-flights', `${appData.stats.yearlyFlights.toLocaleString()} (${appData.stats.plannedFlights})`);
 
-// ===== Fetch & Debug =====
-async function testUrlOnly() {
-  const url = el("urlInput").value.trim();
-  clearDebug();
-  pushStatus("接続テスト開始: " + url);
-  setBadge("warn");
+            // 各種描画
+            if (currentTab === 'dashboard') {
+                updateDashboard();
+            } else {
+                const cS = document.getElementById('chartFilterStart').value;
+                const cE = document.getElementById('chartFilterEnd').value;
+                const catSelValue = document.getElementById('categorySelector')?.value || 'all';
+                const listF = (list, start, end) => list.filter(i => (!start || i.date >= start) && (!end || i.date <= end));
+                
+                if (currentTab === 'miles') updateMilesTab(listF(appData.miles, cS, cE), catSelValue);
+                else if (currentTab === 'lsp') updateLSPTab(listF(appData.lsp, cS, cE), catSelValue);
+                else if (currentTab === 'flights') updateFlightsTab(listF(appData.plans, cS, cE));
+            }
+        }
 
-  const debug = { phase:"test", url };
-  try {
-    const res = await fetch(url, { method:"GET" });
-    debug.http = { ok: res.ok, status: res.status, statusText: res.statusText, contentType: res.headers.get("content-type") };
-    setDebug(debug);
-    if (!res.ok) {
-      setBadge("ng");
-      pushStatus(`接続NG (HTTP ${res.status})`, "ng");
-      return;
-    }
-    setBadge("ok");
-    pushStatus(`接続OK (HTTP ${res.status})`, "ok");
-  } catch (e) {
-    debug.error = { name:e?.name, message:e?.message, stack:String(e?.stack||"") };
-    setDebug(debug);
-    setBadge("ng");
-    pushStatus(`接続NG (例外) ${e?.message}`, "ng");
-  }
-}
+        function updateDashboard() {
+            const now = new Date();
+            const currentYear = now.getFullYear().toString();
+            const currentMonth = now.getMonth(); 
 
-async function syncFromUrl(auto = false) {
-  const url = el("urlInput").value.trim();
-  clearDebug();
-  setBadge("warn");
+            const ym = appData.miles.filter(m => m.date.startsWith(currentYear));
+            const monthLabels = Array.from({length: 12}, (_, i) => `${i+1}月`);
+            const mFop = Array(12).fill(0), mFl = Array(12).fill(0);
+            
+            ym.forEach(m => { 
+                const parts = m.date.split('-');
+                if(parts.length >= 2) {
+                    const idx = parseInt(parts[1]) - 1; 
+                    if (idx>=0 && idx<12) { 
+                        mFop[idx] += (parseInt(m.fop)||0); 
+                        mFl[idx] += (parseInt(m.flight_count)||0); 
+                    } 
+                }
+            });
+            
+            let rF = 0, rL = 0;
+            const cF = mFop.map((v, i) => i <= currentMonth ? (rF += v) : (i === 0 ? 0 : null));
+            const cL = mFl.map((v, i) => i <= currentMonth ? (rL += v) : (i === 0 ? 0 : null));
+            
+            try { renderMixedChart('annualTrendChart', monthLabels, cF, cL); } catch(e){}
+            
+            const mileTotalGains = appData.miles.reduce((s, m) => s + (m.gain > 0 ? m.gain : 0), 0);
+            const lspTotalPoints = appData.lsp.reduce((s, l) => s + l.points, 0);
+            
+            safeSetText('dash-mile-pie-title', `総獲得マイル内訳: ${mileTotalGains.toLocaleString()} mile`);
+            safeSetText('dash-lsp-pie-title', `総LSP獲得内訳: ${lspTotalPoints.toLocaleString()} LSP`);
 
-  pushStatus((auto ? "自動同期開始: " : "同期開始: ") + url);
+            try { renderPieChart('milePieChart', appData.miles.reduce((g, d) => ({...g, [d.ui_category]: (g[d.ui_category]||0) + (d.gain > 0 ? d.gain : 0)}), {})); } catch(e){}
+            try { renderPieChart('lspPieChart', appData.lsp.reduce((g, d) => ({...g, [d.ui_category]: (g[d.ui_category]||0) + d.points}), {})); } catch(e){}
+        }
 
-  const debug = {
-    phase:"sync",
-    url,
-    fetch: {},
-    workbook: {},
-    parse: {},
-    stats: {}
-  };
+        function updateMilesTab(chartData, catFilter) {
+            safeSetText('detailLineTitle', '月別獲得実績');
+            document.getElementById('rankingSection').classList.add('hidden');
+            document.getElementById('monthFilterGroup').classList.add('hidden');
+            document.getElementById('categoryFilterGroup').classList.remove('hidden');
 
-  try {
-    const res = await fetch(url, { method:"GET" });
-    debug.fetch.ok = res.ok;
-    debug.fetch.status = res.status;
-    debug.fetch.statusText = res.statusText;
-    debug.fetch.contentType = res.headers.get("content-type");
+            try { renderPieChart('detailPieChart', chartData.reduce((g, d) => ({...g, [d.ui_category]: (g[d.ui_category]||0) + (d.gain > 0 ? d.gain : 0)}), {})); } catch(e){}
+            try { renderStackedBar('detailLineChart', chartData, 'gain'); } catch(e){}
+            try { renderMixedTrendChart('mileMixedChart', chartData, 'gain', 'total', '獲得マイル', '保有残高', '#1e293b', '#E10009'); } catch(e){}
 
-    if (!res.ok) {
-      setBadge("ng");
-      pushStatus(`同期NG (HTTP ${res.status})`, "ng");
-      setDebug(debug);
-      return;
-    }
+            const sel = document.getElementById('categorySelector');
+            if (sel) {
+                const cats = ['all', ...new Set(appData.miles.map(m => m.ui_category))].sort();
+                if (sel.options.length !== cats.length) {
+                    sel.innerHTML = cats.map(c => `<option value="${c}" ${c === catFilter ? 'selected' : ''}>${c === 'all' ? '全てのカテゴリを表示' : c}</option>`).join('');
+                }
+            }
 
-    const buf = await res.arrayBuffer();
-    debug.fetch.bytes = buf.byteLength;
+            const filteredForTable = appData.miles
+                .filter(m => catFilter === 'all' || m.ui_category === catFilter)
+                .sort((a, b) => b.date.localeCompare(a.date) || b._idx - a._idx);
 
-    const wb = XLSX.read(buf, { type:"array", cellDates:true });
-    debug.workbook.sheetNames = wb.SheetNames;
+            const totalGainSum = filteredForTable.reduce((s, m) => s + (m.gain > 0 ? m.gain : 0), 0);
+            safeSetText('totalEarnedValue', `表示中総獲得: ${totalGainSum.toLocaleString()} mile`);
 
-    // Convert rows for each sheet for parsing + debug sample
-    const rawRowsBySheet = {};
-    const sheetInfo = {};
-    wb.SheetNames.forEach(name => {
-      const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header:1, raw:true });
-      rawRowsBySheet[name] = rows;
-      sheetInfo[name] = { rows: rows.length, cols: Array.isArray(rows[0]) ? rows[0].length : 0 };
-    });
+            safeSetHTML('table-head', `<tr><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">日付</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">カテゴリ</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">内容</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-right">獲得</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-right">残高</th></tr>`);
+            safeSetHTML('table-body', filteredForTable.map(m => `<tr class="hover:bg-red-50/30 transition border-b border-slate-50"><td class="p-4 text-sm">${m.date}</td><td class="p-4 text-[10px] font-bold text-slate-500">${m.ui_category}</td><td class="p-4 text-sm font-bold">${m.content}</td><td class="p-4 text-sm font-black text-red-500 text-right">${m.gain > 0 ? '+' : ''}${m.gain.toLocaleString()}</td><td class="p-4 text-sm font-bold text-right">${m.total.toLocaleString()}</td></tr>`).join(''));
+        }
 
-    debug.workbook.sheetInfo = sheetInfo;
+        function updateLSPTab(chartData, catFilter) {
+            safeSetText('detailLineTitle', '月別獲得実績');
+            document.getElementById('rankingSection').classList.add('hidden');
+            document.getElementById('monthFilterGroup').classList.add('hidden');
+            document.getElementById('categoryFilterGroup').classList.remove('hidden');
 
-    // Parse
-    parseWorkbook(wb, rawRowsBySheet);
+            try { renderPieChart('detailPieChart', chartData.reduce((g, d) => ({...g, [d.ui_category]: (g[d.ui_category]||0)+d.points}), {})); } catch(e){}
+            try { renderStackedBar('detailLineChart', chartData, 'points'); } catch(e){}
+            try { renderMixedTrendChart('lspMixedChart', chartData, 'points', 'total', '獲得LSP', '累計LSP', '#1e293b', '#3b82f6'); } catch(e){}
 
-    debug.parse.counts = {
-      miles: appData.miles.length,
-      lsp: appData.lsp.length,
-      plans: appData.plans.length
-    };
+            const sel = document.getElementById('categorySelector');
+            if (sel) {
+                const cats = ['all', ...new Set(appData.lsp.map(l => l.ui_category))].sort();
+                if (sel.options.length !== cats.length) {
+                    sel.innerHTML = cats.map(c => `<option value="${c}" ${c === catFilter ? 'selected' : ''}>${c === 'all' ? '全てのカテゴリを表示' : c}</option>`).join('');
+                }
+            }
 
-    // Samples (先頭数行)
-    const sample = {};
-    for (const name of wb.SheetNames) {
-      const rows = rawRowsBySheet[name] || [];
-      sample[name] = rows.slice(0, 6); // header + 5 rows
-    }
-    debug.workbook.sampleRows = sample;
+            const filteredForTable = appData.lsp
+                .filter(l => catFilter === 'all' || l.ui_category === catFilter)
+                .sort((a, b) => b.date.localeCompare(a.date) || b._idx - a._idx);
 
-    debug.stats = { ...appData.stats };
+            const totalSum = filteredForTable.reduce((s, l) => s + l.points, 0);
+            safeSetText('totalEarnedValue', `表示中合計: ${totalSum.toLocaleString()} LSP`);
 
-    // Update UI
-    updateUI();
+            safeSetHTML('table-head', `<tr><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">積算日</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">カテゴリ</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">内容</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-right">獲得</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-right">累積</th></tr>`);
+            safeSetHTML('table-body', filteredForTable.map(l => `<tr class="hover:bg-blue-50/30 transition border-b border-slate-50"><td class="p-4 text-sm font-bold">${l.date}</td><td class="p-4 text-[10px] font-bold text-slate-500">${l.ui_category}</td><td class="p-4 text-sm"><strong>${l.content}</strong></td><td class="p-4 text-sm font-black text-red-500 text-right">+${l.points.toLocaleString()}</td><td class="p-4 text-sm font-bold text-right">${l.total.toLocaleString()}</td></tr>`).join(''));
+        }
 
-    setBadge("ok");
-    pushStatus(`同期OK: miles=${appData.miles.length}, lsp=${appData.lsp.length}, plans=${appData.plans.length}`, "ok");
+        function updateFlightsTab(chartData) {
+            safeSetText('detailLineTitle', '月別搭乗頻度');
+            document.getElementById('pieChartContainer')?.classList.add('hidden');
+            document.getElementById('rankingSection')?.classList.remove('hidden');
+            document.getElementById('monthFilterGroup')?.classList.remove('hidden');
+            document.getElementById('categoryFilterGroup')?.classList.add('hidden');
 
-    setDebug(debug);
-  } catch (e) {
-    debug.error = { name:e?.name, message:e?.message, stack:String(e?.stack||"") };
-    setDebug(debug);
-    setBadge("ng");
-    pushStatus(`同期NG (例外) ${e?.message}`, "ng");
-  }
-}
+            try { renderFlightStackedBar('detailLineChart', chartData); } catch(e){}
 
-// ===== Local file loader =====
-function loadFromLocalFile(file) {
-  clearDebug();
-  setBadge("warn");
-  pushStatus("ローカル読み込み開始: " + (file?.name||""));
-  const debug = { phase:"local", file: { name:file?.name, size:file?.size, type:file?.type }, workbook:{}, parse:{}, stats:{} };
+            const mSel = document.getElementById('monthSelector');
+            if (mSel) {
+                const monthsInPlans = [...new Set(appData.plans.map(p => p.date.substring(0, 7)))].sort();
+                const allOptions = ['planned', 'all', ...monthsInPlans];
+                if (mSel.options.length !== allOptions.length) {
+                    mSel.innerHTML = allOptions.map(m => `<option value="${m}">${m === 'all' ? '全て表示' : m === 'planned' ? '予定全区間' : m.replace('-', '年') + '月'}</option>`).join('');
+                    if (!mSel.value) mSel.value = 'planned';
+                }
+            }
 
-  const reader = new FileReader();
-  reader.onerror = () => {
-    debug.error = { name:"FileReaderError", message:"FileReader failed" };
-    setDebug(debug);
-    setBadge("ng");
-    pushStatus("ローカル読み込みNG: FileReader失敗", "ng");
-  };
-  reader.onload = (ev) => {
-    try {
-      const buf = ev.target.result;
-      const wb = XLSX.read(buf, { type:"array", cellDates:true });
-      debug.workbook.sheetNames = wb.SheetNames;
+            let filteredTable = appData.plans;
+            if (mSel?.value === 'planned') filteredTable = filteredTable.filter(p => p.status !== '済');
+            else if (mSel?.value && mSel.value !== 'all') filteredTable = filteredTable.filter(p => p.date.substring(0, 7) === mSel.value);
+            
+            filteredTable.sort((a, b) => b.date.localeCompare(a.date));
 
-      const rawRowsBySheet = {};
-      const sheetInfo = {};
-      wb.SheetNames.forEach(name => {
-        const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header:1, raw:true });
-        rawRowsBySheet[name] = rows;
-        sheetInfo[name] = { rows: rows.length, cols: Array.isArray(rows[0]) ? rows[0].length : 0 };
-      });
-      debug.workbook.sheetInfo = sheetInfo;
+            const todayStr = new Date().toISOString().split('T')[0];
+            const upcoming = appData.plans.filter(p => p.status !== '済' && p.date >= todayStr).sort((a,b)=>a.date.localeCompare(b.date));
+            safeSetText('stat-planned-flights', upcoming.length);
+            
+            const cardsHtml = upcoming.slice(0, 3).map(p => `
+                <div class="bg-red-50 border border-red-100 p-3 rounded-xl flex items-center gap-3 min-w-[200px]">
+                    <div class="text-red-600"><i class="fa-solid fa-plane text-xl"></i></div>
+                    <div>
+                        <p class="text-[10px] font-bold text-red-400 uppercase">${p.date} ${getDayOfWeek(p.date)}</p>
+                        <p class="text-sm font-black text-slate-800">${p.from} → ${p.to}</p>
+                        <p class="text-[10px] text-slate-500">${p.airline} ${p.flightNo}</p>
+                    </div>
+                </div>
+            `).join('') || '<p class="text-sm text-slate-400 italic">予定されているフライトはありません</p>';
+            safeSetHTML('flightCards', cardsHtml);
 
-      parseWorkbook(wb, rawRowsBySheet);
-      updateUI();
+            const routes = {}; appData.plans.forEach(p => { if(p.status==='済'){ const r = `${p.from}→${p.to}`; routes[r] = (routes[r]||0)+1; }});
+            try { renderRankingBarChart('rankingChart', Object.entries(routes).sort((a,b) => b[1] - a[1])); } catch(e){}
 
-      debug.parse.counts = { miles: appData.miles.length, lsp: appData.lsp.length, plans: appData.plans.length };
-      debug.stats = { ...appData.stats };
+            safeSetHTML('table-head', `<tr><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">日付/時刻</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">便名</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-left">区間</th><th class="p-4 text-[10px] font-black text-slate-400 uppercase text-center">ステータス</th></tr>`);
+            safeSetHTML('table-body', filteredTable.map(p => `
+                <tr class="hover:bg-slate-50 transition border-b border-slate-50">
+                    <td class="p-4 text-sm font-bold">
+                        ${p.date} ${getDayOfWeek(p.date)}<br>
+                        <span class="text-slate-500 font-normal">${p.depTime || '--:--'} - ${p.arrTime || '--:--'}</span>
+                    </td>
+                    <td class="p-4 text-sm font-mono">${p.airline || ''} ${p.flightNo || ''}</td>
+                    <td class="p-4 text-sm font-bold text-slate-700">${p.from} → ${p.to}</td>
+                    <td class="p-4 text-center">
+                        <span class="px-3 py-1 rounded-full text-[10px] font-black ${p.status === '済' ? 'bg-slate-100 text-slate-400' : 'bg-red-600 text-white shadow-sm'}">${p.status}</span>
+                    </td>
+                </tr>`).join(''));
+        }
 
-      setBadge("ok");
-      pushStatus(`ローカルOK: miles=${appData.miles.length}, lsp=${appData.lsp.length}, plans=${appData.plans.length}`, "ok");
-      setDebug(debug);
-    } catch (e) {
-      debug.error = { name:e?.name, message:e?.message, stack:String(e?.stack||"") };
-      setDebug(debug);
-      setBadge("ng");
-      pushStatus(`ローカルNG (例外) ${e?.message}`, "ng");
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
+        // --- Chart Components ---
+        function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
 
-// ===== UI wiring =====
-window.addEventListener("load", () => {
-  el("urlInput").value = DEFAULT_AUTO_URL;
+        function renderStackedBar(canvasId, list, valueKey) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            destroyChart(canvasId);
+            const months = [...new Set(list.map(d => d.date.substring(0, 7)).filter(k => k && k !== 'undefined'))].sort();
+            const cats = [...new Set(list.map(d => d.ui_category || 'その他獲得'))].sort();
+            const colors = ['#E10009', '#1e293b', '#10b981', '#3b82f6', '#f59e0b', '#db2777', '#8b5cf6', '#94a3b8'];
+            charts[canvasId] = new Chart(ctx, { type: 'bar', data: { labels: months, datasets: cats.map((cat, i) => ({ label: cat, backgroundColor: colors[i % colors.length], data: months.map(m => list.filter(d => d.date.substring(0, 7) === m && d.ui_category === cat).reduce((s, d) => s + (d[valueKey] > 0 ? d[valueKey] : 0), 0)), borderRadius: 4 })) }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }, plugins: { legend: { position: 'right', labels: { font: { size: 9, weight: 'bold' }, boxWidth: 10 } } } } });
+        }
 
-  el("btnSync").addEventListener("click", () => syncFromUrl(false));
-  el("btnTestUrl").addEventListener("click", () => testUrlOnly());
+        function renderMixedTrendChart(canvasId, list, barKey, lineKey, barLabel, lineLabel, barColor, lineOutline) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            destroyChart(canvasId);
+            const sortedList = [...list].sort((a,b) => a.date.localeCompare(b.date) || a._idx - b._idx);
+            const dates = [...new Set(sortedList.map(d => d.date))];
+            const lineData = dates.map(d => { const dayItems = sortedList.filter(i => i.date === d); return dayItems[dayItems.length - 1][lineKey]; });
+            const barData = dates.map(d => { const dayItems = sortedList.filter(i => i.date === d); return dayItems.reduce((s, i) => s + (i[barKey] > 0 ? i[barKey] : 0), 0); });
+            charts[canvasId] = new Chart(ctx, { data: { labels: dates, datasets: [{ type: 'line', label: lineLabel, data: lineData, borderColor: lineOutline, borderWidth: 3, fill: false, tension: 0.1, yAxisID: 'y', pointRadius: 1 }, { type: 'bar', label: barLabel, data: barData, backgroundColor: barColor, borderRadius: 4, yAxisID: 'y1' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { position: 'left', beginAtZero: false }, y1: { position: 'right', beginAtZero: true, grid: { display: false } } }, plugins: { legend: { position: 'top' } } } });
+        }
 
-  el("btnCopyUrl").addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(el("urlInput").value.trim());
-      pushStatus("URLをコピーしました", "ok");
-    } catch {
-      pushStatus("URLコピーに失敗（ブラウザ権限）", "ng");
-    }
-  });
+        function renderFlightStackedBar(canvasId, list) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            destroyChart(canvasId);
+            const today = new Date();
+            const months = []; for (let i = -6; i <= 6; i++) { const d = new Date(today.getFullYear(), today.getMonth() + i, 1); months.push(d.toISOString().substring(0, 7)); }
+            charts[canvasId] = new Chart(ctx, { type: 'bar', data: { labels: months.map(m => m.replace('-', '年') + '月'), datasets: [{ label: '搭乗済', backgroundColor: '#1e293b', data: months.map(m => list.filter(d => d.date.substring(0, 7) === m && d.status === '済').length), borderRadius: 4 }, { label: '搭乗予定', backgroundColor: '#E10009', data: months.map(m => list.filter(d => d.date.substring(0, 7) === m && d.status !== '済').length), borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { position: 'right', labels: { font: { size: 10, weight: 'bold' } } } } } });
+        }
 
-  el("btnCopyDebug").addEventListener("click", async () => {
-    const t = el("debugJson").textContent || "";
-    if (!t) { pushStatus("Debugが空です（まだ同期していない）", "ng"); return; }
-    try {
-      await navigator.clipboard.writeText(t);
-      pushStatus("Debug JSON をコピーしました", "ok");
-    } catch {
-      pushStatus("Debugコピーに失敗（ブラウザ権限）", "ng");
-    }
-  });
+        function renderRankingBarChart(canvasId, sortedData) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d'); 
+            destroyChart(canvasId);
+            charts[canvasId] = new Chart(ctx, { type: 'bar', data: { labels: sortedData.map(d => d[0]), datasets: [{ label: '搭乗回数', data: sortedData.map(d => d[1]), backgroundColor: '#E10009', borderRadius: 4 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+        }
 
-  el("btnClearDebug").addEventListener("click", () => {
-    clearDebug();
-    pushStatus("Debugをクリアしました");
-  });
+        function renderMixedChart(canvasId, labels, fop, flights) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d'); 
+            destroyChart(canvasId);
+            charts[canvasId] = new Chart(ctx, { data: { labels: labels, datasets: [{ type: 'line', label: '累計 FOP', data: fop, borderColor: '#E10009', backgroundColor: 'rgba(225, 0, 9, 0.1)', borderWidth: 4, fill: true, tension: 0.3, yAxisID: 'y' }, { type: 'bar', label: '累計 搭乗数', data: flights, backgroundColor: '#1e293b', borderRadius: 6, yAxisID: 'y1' }]}, options: { responsive: true, maintainAspectRatio: false, scales: { y: { position: 'left', beginAtZero: true }, y1: { position: 'right', beginAtZero: true, grid: { display: false } } }, plugins: { legend: { position: 'top', labels: { font: { weight: 'bold' } } } } } });
+        }
 
-  el("fileInput").addEventListener("change", (e) => {
-    const f = e.target.files?.[0];
-    if (f) loadFromLocalFile(f);
-  });
-
-  // 初回は自動同期（失敗しても理由がDebugに出る）
-  syncFromUrl(true);
-});
-</script>
+        function renderPieChart(canvasId, groups) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d'); 
+            destroyChart(canvasId);
+            const labels = Object.keys(groups).sort((a, b) => groups[b] - groups[a]); 
+            const total = Object.values(groups).reduce((a,b)=>a+b,0);
+            if (labels.length === 0) return;
+            charts[canvasId] = new Chart(ctx, { type: 'doughnut', data: { labels: labels, datasets: [{ data: labels.map(l => groups[l]), backgroundColor: ['#E10009', '#1e293b', '#10b981', '#3b82f6', '#f59e0b', '#db2777', '#8b5cf6', '#94a3b8'], borderWidth: 0 }] }, options: { rotation: 0, responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 9, weight: 'bold' }, boxWidth: 10 } }, tooltip: { callbacks: { label: (c) => ` ${c.label}: ${c.raw.toLocaleString()} (${total>0?(c.raw/total*100).toFixed(1):0}%)` } } } } });
+        }
+    </script>
 </body>
 </html>
