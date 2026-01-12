@@ -98,7 +98,7 @@
             display: block;
         }
         canvas {
-            max-height: none; /* 拡張時に制限をかけない */
+            max-height: none;
             width: 100% !important;
         }
         .table-container {
@@ -125,6 +125,19 @@
         }
         .sort-header:hover {
             background-color: #f1f5f9;
+        }
+
+        /* Responsive Details Styling */
+        .details-card {
+            background: white;
+            border: 1px solid #eef2f6;
+            border-radius: 1rem;
+            padding: 1.25rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
         }
     </style>
 </head>
@@ -234,7 +247,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8" id="analysisGrid">
-                    <!-- Pie Chart & Category Table -->
                     <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100 flex flex-col" id="pieChartContainer">
                         <div class="flex justify-between items-center mb-4 md:mb-6">
                             <h3 class="font-black text-sm md:text-base text-slate-800" id="detailPieTitle">内訳</h3>
@@ -251,7 +263,6 @@
                         </div>
                     </div>
 
-                    <!-- Line Chart & Monthly Pivot Table -->
                     <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100 flex flex-col" id="lineChartContainer">
                         <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-4 md:mb-6">
                             <h3 class="font-black text-sm md:text-base text-slate-800" id="detailLineTitle">実績</h3>
@@ -274,12 +285,30 @@
                     </div>
 
                     <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100 hidden lg:col-span-2" id="mileTrendSection">
-                        <h3 class="font-black text-sm md:text-base text-slate-800 mb-6">マイル推移</h3>
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-black text-sm md:text-base text-slate-800">マイル推移</h3>
+                            <select id="mileTrendPeriod" onchange="updateUI()" class="text-[10px] font-bold border-slate-200">
+                                <option value="all" selected>全期間</option>
+                                <option value="1y">1年</option>
+                                <option value="6m">半年</option>
+                                <option value="3m">3ヶ月</option>
+                                <option value="1m">1ヶ月</option>
+                            </select>
+                        </div>
                         <div class="h-64 md:h-80"><canvas id="mileMixedChart"></canvas></div>
                     </div>
 
                     <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100 hidden lg:col-span-2" id="lspTrendSection">
-                        <h3 class="font-black text-sm md:text-base text-slate-800 mb-6">LSP累積推移</h3>
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-black text-sm md:text-base text-slate-800">LSP累積推移</h3>
+                            <select id="lspTrendPeriod" onchange="updateUI()" class="text-[10px] font-bold border-slate-200">
+                                <option value="all" selected>全期間</option>
+                                <option value="1y">1年</option>
+                                <option value="6m">半年</option>
+                                <option value="3m">3ヶ月</option>
+                                <option value="1m">1ヶ月</option>
+                            </select>
+                        </div>
                         <div class="h-64 md:h-80"><canvas id="lspMixedChart"></canvas></div>
                     </div>
 
@@ -290,7 +319,6 @@
                                 区間搭乗ランキング <span class="text-[10px] font-normal text-slate-400 ml-1">(全期間・組み合わせ)</span>
                             </h3>
                         </div>
-                        <!-- グラフコンテナの高さはJavaScript側で計算して動的にセット -->
                         <div id="rankingChartContainer" class="transition-all duration-300 overflow-hidden relative" style="height: 256px;">
                             <canvas id="rankingChartCombined"></canvas>
                         </div>
@@ -310,17 +338,23 @@
                             <select id="categorySelector" onchange="updateUI()" class="flex-1 md:flex-none font-bold"></select>
                         </div>
                     </div>
-                    <div class="table-container">
+                    
+                    <!-- デスクトップ用: 横長テーブル -->
+                    <div class="hidden md:block table-container">
                         <table class="w-full text-left border-collapse min-w-[900px]">
                             <thead id="table-head" class="sticky top-0 bg-white z-10 shadow-sm border-b"></thead>
                             <tbody id="table-body" class="divide-y divide-slate-50 text-sm"></tbody>
                         </table>
                     </div>
+
+                    <!-- スマートフォン用: カード形式リスト -->
+                    <div id="mobile-details-list" class="block md:hidden p-4 bg-slate-50/50 space-y-4">
+                        <!-- 動的にカードが生成される -->
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Mobile Bottom Navigation -->
         <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 h-16 flex items-center justify-around z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
             <button onclick="switchTab('dashboard')" class="mobile-nav-item flex flex-col items-center gap-1 active" data-tab-mob="dashboard">
                 <i class="fa-solid fa-gauge-high text-lg"></i>
@@ -546,19 +580,31 @@
                     o.ui_category = categorizeMile(o.content); return o;
                 }).filter(i => i.date && i.date.match(/^\d{4}/));
             }
-            else if (sheetName.includes('計画') || findHeader(['出発地']) !== -1) {
-                const idx = findHeader(['出発地']); if (idx === -1) return;
+            else if (sheetName.includes('計画') || findHeader(['出発地', '到着地']) !== -1) {
+                const idx = findHeader(['出発地', '到着地']); if (idx === -1) return;
                 const h = rows[idx];
-                appData.plans = rows.slice(idx + 1).filter(r => r && r[h.indexOf('日付')]).map(r => ({
-                    date: parseDate(r[h.indexOf('日付')]), 
-                    airline: r[h.indexOf('運航会社')], 
-                    flightNo: r[h.indexOf('便名')], 
-                    from: r[h.indexOf('出発地')], 
-                    to: r[h.indexOf('到着地')], 
-                    depTime: formatSimpleTime(r[h.indexOf('出発時刻')]), 
-                    arrTime: formatSimpleTime(r[h.indexOf('到着時刻')]), 
-                    status: r[h.indexOf('結果')] || '予定',
-                    fare: parseFloat(r[h.indexOf('価格')] || r[h.indexOf('料金')] || r[h.indexOf('運賃')]) || 0
+                
+                const col = (kw) => h.findIndex(c => typeof c === 'string' && kw.some(k => c.includes(k)));
+                const dIdx = col(['日付', '年月日']);
+                const aIdx = col(['運航会社', '会社']);
+                const fIdx = col(['便名']);
+                const frIdx = col(['出発地']);
+                const toIdx = col(['到着地']);
+                const dtIdx = col(['出発時刻', '出発']);
+                const atIdx = col(['到着時刻', '到着']);
+                const sIdx = col(['結果', '状態', 'ステータス']);
+                const pIdx = col(['価格', '料金', '運賃', '代金']);
+
+                appData.plans = rows.slice(idx + 1).filter(r => r && r[dIdx]).map(r => ({
+                    date: parseDate(r[dIdx]), 
+                    airline: r[aIdx] || "", 
+                    flightNo: r[fIdx] || "", 
+                    from: r[frIdx] || "", 
+                    to: r[toIdx] || "", 
+                    depTime: formatSimpleTime(r[dtIdx]), 
+                    arrTime: formatSimpleTime(r[atIdx]), 
+                    status: r[sIdx] || '予定',
+                    fare: parseFloat(r[pIdx]) || 0
                 })).filter(i => i.date && i.date.match(/^\d{4}/));
             }
         }
@@ -599,6 +645,18 @@
             updateUI();
         }
 
+        function getFilteredTrendData(data, periodValue) {
+            if (periodValue === 'all') return data;
+            const now = new Date();
+            const limit = new Date();
+            if (periodValue === '1y') limit.setFullYear(now.getFullYear() - 1);
+            else if (periodValue === '6m') limit.setMonth(now.getMonth() - 6);
+            else if (periodValue === '3m') limit.setMonth(now.getMonth() - 3);
+            else if (periodValue === '1m') limit.setMonth(now.getMonth() - 1);
+            const limitStr = limit.toISOString().split('T')[0];
+            return data.filter(d => d.date >= limitStr);
+        }
+
         function updateUI() {
             const todayStr = new Date().toISOString().split('T')[0];
             const currentYear = new Date().getFullYear().toString();
@@ -622,17 +680,28 @@
 
             if (currentTab === 'dashboard') updateDashboard();
             else {
-                const cS = document.getElementById('chartFilterStart').value;
-                const cE = document.getElementById('chartFilterEnd').value;
-                const catSelValue = document.getElementById('categorySelector') ? document.getElementById('categorySelector').value : 'all';
+                const startInput = document.getElementById('chartFilterStart');
+                const endInput = document.getElementById('chartFilterEnd');
+                const cS = startInput ? startInput.value : '';
+                const cE = endInput ? endInput.value : '';
+                
+                const catSel = document.getElementById('categorySelector');
+                const catSelValue = (catSel && catSel.value) ? catSel.value : 'all';
+
                 const listF = (list, start, end) => {
                     if (isAllDisplayMode) return list;
                     return list.filter(i => (!start || i.date >= start) && (!end || i.date <= end));
                 };
 
-                if (currentTab === 'miles') updateMilesTab(listF(appData.miles, cS, cE), catSelValue);
-                else if (currentTab === 'lsp') updateLSPTab(listF(appData.lsp, cS, cE), catSelValue);
-                else if (currentTab === 'flights') updateFlightsTab(listF(appData.plans, cS, cE), catSelValue);
+                const filteredByDate = listF(
+                    currentTab === 'miles' ? appData.miles : 
+                    (currentTab === 'lsp' ? appData.lsp : appData.plans), 
+                    cS, cE
+                );
+
+                if (currentTab === 'miles') updateMilesTab(filteredByDate, catSelValue);
+                else if (currentTab === 'lsp') updateLSPTab(filteredByDate, catSelValue);
+                else if (currentTab === 'flights') updateFlightsTab(filteredByDate, catSelValue);
             }
         }
 
@@ -715,16 +784,37 @@
             renderCategorySummary(groups, 'mile');
             renderMonthlySummary(chartData, 'gain', 'mile');
             try { renderStackedBar('detailLineChart', chartData, 'gain'); } catch(e){}
-            try { renderMixedTrendChart('mileMixedChart', chartData, 'gain', 'total', '獲得', '残高', '#1e293b', '#E10009'); } catch(e){}
+            
+            // 推移グラフのみ別のフィルターを適用（全区間、1年、半年など）
+            const periodVal = document.getElementById('mileTrendPeriod').value;
+            const trendData = getFilteredTrendData(appData.miles, periodVal);
+            try { renderMixedTrendChart('mileMixedChart', trendData, 'gain', 'total', '獲得', '残高', '#1e293b', '#E10009'); } catch(e){}
+            
             const sel = document.getElementById('categorySelector');
             if (sel) {
                 const cats = ['all', ...new Set(appData.miles.map(m => m.ui_category))].sort();
-                sel.innerHTML = cats.map(c => '<option value="' + c + '" ' + (c === catFilter ? 'selected' : '') + '>' + (c === 'all' ? '全ての種類' : c) + '</option>').join('');
+                sel.innerHTML = cats.map(c => `<option value="${c}" ${c === catFilter ? 'selected' : ''}>${c === 'all' ? '全ての種類' : c}</option>`).join('');
             }
-            const filtered = appData.miles.filter(m => catFilter === 'all' || m.ui_category === catFilter).sort((a, b) => b.date.localeCompare(a.date) || b._idx - a._idx);
+            
+            const filtered = chartData.filter(m => !catFilter || catFilter === 'all' || m.ui_category === catFilter).sort((a, b) => b.date.localeCompare(a.date) || b._idx - a._idx);
             safeSetText('totalEarnedValue', '合計: ' + filtered.reduce((s, m) => s + (m.gain > 0 ? m.gain : 0), 0).toLocaleString() + " mile");
+            
             safeSetHTML('table-head', '<tr><th class="p-3">日付</th><th class="p-3">カテゴリ</th><th class="p-3">内容</th><th class="p-3 text-right">獲得</th><th class="p-3 text-right">残高</th></tr>');
-            safeSetHTML('table-body', filtered.map(m => '<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 whitespace-nowrap text-xs font-bold">' + m.date + '</td><td class="p-3 text-[10px] font-bold">' + m.ui_category + '</td><td class="p-3 font-bold text-slate-700 text-xs">' + m.content + '</td><td class="p-3 text-right text-red-500 font-black text-xs">' + (m.gain > 0 ? '+' : '') + m.gain.toLocaleString() + '</td><td class="p-3 text-right font-bold text-slate-800 text-xs">' + m.total.toLocaleString() + '</td></tr>').join(''));
+            safeSetHTML('table-body', filtered.map(m => `<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 whitespace-nowrap text-xs font-bold">${m.date}</td><td class="p-3 text-[10px] font-bold">${m.ui_category}</td><td class="p-3 font-bold text-slate-700 text-xs">${m.content}</td><td class="p-3 text-right text-red-500 font-black text-xs">${(m.gain > 0 ? '+' : '')}${m.gain.toLocaleString()}</td><td class="p-3 text-right font-bold text-slate-800 text-xs">${m.total.toLocaleString()}</td></tr>`).join(''));
+            
+            safeSetHTML('mobile-details-list', filtered.map(m => `
+                <div class="details-card">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[10px] font-black text-slate-400">${m.date}</span>
+                        <span class="text-[9px] px-2 py-0.5 rounded-full bg-slate-100 font-bold">${m.ui_category}</span>
+                    </div>
+                    <p class="text-xs font-bold text-slate-800">${m.content}</p>
+                    <div class="flex justify-between items-end pt-2 border-t border-slate-50">
+                        <div><p class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">残高</p><p class="text-xs font-bold">${m.total.toLocaleString()}</p></div>
+                        <p class="text-sm font-black text-red-500">${(m.gain > 0 ? '+' : '')}${m.gain.toLocaleString()} <span class="text-[9px]">mile</span></p>
+                    </div>
+                </div>
+            `).join('') || '<p class="text-center py-8 text-slate-400 text-xs italic">該当データはありません</p>');
         }
 
         function updateLSPTab(chartData, catFilter) {
@@ -735,21 +825,41 @@
             renderCategorySummary(groups, 'LSP');
             renderMonthlySummary(chartData, 'points', 'LSP');
             try { renderStackedBar('detailLineChart', chartData, 'points'); } catch(e){}
-            try { renderMixedTrendChart('lspMixedChart', chartData, 'points', 'total', '獲得', '累計', '#1e293b', '#3b82f6'); } catch(e){}
+            
+            // 推移グラフのみ別のフィルターを適用（全区間、1年、半年など）
+            const periodVal = document.getElementById('lspTrendPeriod').value;
+            const trendData = getFilteredTrendData(appData.lsp, periodVal);
+            try { renderMixedTrendChart('lspMixedChart', trendData, 'points', 'total', '獲得', '累計', '#1e293b', '#3b82f6'); } catch(e){}
+            
             const sel = document.getElementById('categorySelector');
             if (sel) {
                 const cats = ['all', ...new Set(appData.lsp.map(l => l.ui_category))].sort();
-                sel.innerHTML = cats.map(c => '<option value="' + c + '" ' + (c === catFilter ? 'selected' : '') + '>' + (c === 'all' ? '全ての種類' : c) + '</option>').join('');
+                sel.innerHTML = cats.map(c => `<option value="${c}" ${c === catFilter ? 'selected' : ''}>${c === 'all' ? '全ての種類' : c}</option>`).join('');
             }
-            const filtered = appData.lsp.filter(l => catFilter === 'all' || l.ui_category === catFilter).sort((a, b) => b.date.localeCompare(a.date) || b._idx - a._idx);
+            const filtered = chartData.filter(l => !catFilter || catFilter === 'all' || l.ui_category === catFilter).sort((a, b) => b.date.localeCompare(a.date) || b._idx - a._idx);
             safeSetText('totalEarnedValue', '合計: ' + filtered.reduce((s, l) => s + l.points, 0).toLocaleString() + " LSP");
+            
             safeSetHTML('table-head', '<tr><th class="p-3">日付</th><th class="p-3">カテゴリ</th><th class="p-3">内容</th><th class="p-3 text-right">獲得</th><th class="p-3 text-right">累計</th></tr>');
-            safeSetHTML('table-body', filtered.map(l => '<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 whitespace-nowrap text-xs font-bold">' + l.date + '</td><td class="p-3 text-[10px] font-bold">' + l.ui_category + '</td><td class="p-3 font-bold text-slate-700 text-xs">' + l.content + '</td><td class="p-3 text-right text-blue-500 font-black text-xs">+' + l.points.toLocaleString() + '</td><td class="p-3 text-right font-bold text-slate-800 text-xs">' + l.total.toLocaleString() + '</td></tr>').join(''));
+            safeSetHTML('table-body', filtered.map(l => `<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 whitespace-nowrap text-xs font-bold">${l.date}</td><td class="p-3 text-[10px] font-bold">${l.ui_category}</td><td class="p-3 font-bold text-slate-700 text-xs">${l.content}</td><td class="p-3 text-right text-blue-500 font-black text-xs">+${l.points.toLocaleString()}</td><td class="p-3 text-right font-bold text-slate-800 text-xs">${l.total.toLocaleString()}</td></tr>`).join(''));
+            
+            safeSetHTML('mobile-details-list', filtered.map(l => `
+                <div class="details-card">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[10px] font-black text-slate-400">${l.date}</span>
+                        <span class="text-[9px] px-2 py-0.5 rounded-full bg-slate-100 font-bold">${l.ui_category}</span>
+                    </div>
+                    <p class="text-xs font-bold text-slate-800">${l.content}</p>
+                    <div class="flex justify-between items-end pt-2 border-t border-slate-50">
+                        <div><p class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">累計</p><p class="text-xs font-bold">${l.total.toLocaleString()}</p></div>
+                        <p class="text-sm font-black text-blue-500">+${l.points.toLocaleString()} <span class="text-[9px]">LSP</span></p>
+                    </div>
+                </div>
+            `).join('') || '<p class="text-center py-8 text-slate-400 text-xs italic">該当データはありません</p>');
         }
 
         function updateFlightsTab(chartData, statusFilter) {
             safeSetHTML('detailLineTitle', '月別搭乗実績 ' + getRangeText());
-            document.getElementById('rankingSection').classList.remove('hidden');
+            document.getElementById('rankingSection')?.classList.remove('hidden');
             document.getElementById('categorySummaryArea')?.classList.add('hidden');
             document.getElementById('monthlySummaryArea')?.classList.add('hidden');
             
@@ -758,7 +868,7 @@
             const todayStr = new Date().toISOString().split('T')[0];
             const upcoming = appData.plans.filter(p => p.status !== '済' && p.date >= todayStr).sort((a,b)=>a.date.localeCompare(b.date));
             safeSetText('stat-planned-flights', upcoming.length);
-            safeSetHTML('flightCards', upcoming.map(p => '<div class="bg-red-50 border border-red-100 p-3 rounded-xl min-w-[180px]"><p class="text-[10px] font-bold text-red-400">' + p.date + ' ' + getDayOfWeek(p.date) + '</p><p class="text-xs font-black text-slate-800">' + p.from + ' → ' + p.to + '</p></div>').join('') || '<p class="text-xs text-slate-400 italic">予定なし</p>');
+            safeSetHTML('flightCards', upcoming.map(p => `<div class="bg-red-50 border border-red-100 p-3 rounded-xl min-w-[180px]"><p class="text-[10px] font-bold text-red-400">${p.date} ${getDayOfWeek(p.date)}</p><p class="text-xs font-black text-slate-800">${p.from} → ${p.to}</p></div>`).join('') || '<p class="text-xs text-slate-400 italic">予定なし</p>');
             
             const routeStats = {}; 
             appData.plans.forEach(p => { 
@@ -775,14 +885,18 @@
             const sel = document.getElementById('categorySelector');
             if (sel) {
                 const options = [{ val: 'all', label: 'すべての状態' }, { val: '済', label: '搭乗済みのみ' }, { val: '予定', label: '予定のみ' }];
-                sel.innerHTML = options.map(o => '<option value="' + o.val + '" ' + (o.val === statusFilter ? 'selected' : '') + '>' + o.label + '</option>').join('');
+                sel.innerHTML = options.map(o => `<option value="${o.val}" ${o.val === statusFilter ? 'selected' : ''}>${o.label}</option>`).join('');
             }
 
-            const monthFilter = document.getElementById('monthSelector').value;
-            let filteredTable = chartData.filter(p => statusFilter === 'all' || p.status === statusFilter);
+            const monthSel = document.getElementById('monthSelector');
+            const monthFilter = (monthSel && monthSel.value) ? monthSel.value : 'all';
+            
+            let filteredTable = chartData.filter(p => !statusFilter || statusFilter === 'all' || p.status === statusFilter);
             if (monthFilter !== 'all') {
                 filteredTable = filteredTable.filter(p => p.date.startsWith(monthFilter));
             }
+            
+            filteredTable = filteredTable.filter(p => p.depTime !== "" && p.arrTime !== "");
             
             filteredTable.sort((a, b) => {
                 let vA = a[flightSortKey], vB = b[flightSortKey];
@@ -792,9 +906,53 @@
 
             const getSortIcon = (key) => flightSortKey === key ? (flightSortOrder === 'asc' ? ' <i class="fa-solid fa-sort-up"></i>' : ' <i class="fa-solid fa-sort-down"></i>') : ' <i class="fa-solid fa-sort text-slate-200"></i>';
 
-            safeSetHTML('table-head', '<tr class="bg-slate-50 text-[10px] uppercase font-black text-slate-400"><th class="p-3 sort-header" onclick="handleFlightSort(\'date\')">日付' + getSortIcon('date') + '</th><th class="p-3 sort-header" onclick="handleFlightSort(\'flightNo\')">便名' + getSortIcon('flightNo') + '</th><th class="p-3 sort-header" onclick="handleFlightSort(\'from\')">出発地' + getSortIcon('from') + '</th><th class="p-3 sort-header" onclick="handleFlightSort(\'depTime\')">時間' + getSortIcon('depTime') + '</th><th class="p-3 sort-header" onclick="handleFlightSort(\'to\')">到着地' + getSortIcon('to') + '</th><th class="p-3 sort-header" onclick="handleFlightSort(\'arrTime\')">時間' + getSortIcon('arrTime') + '</th><th class="p-3 sort-header text-center" onclick="handleFlightSort(\'status\')">状態' + getSortIcon('status') + '</th><th class="p-3 sort-header text-right" onclick="handleFlightSort(\'fare\')">料金' + getSortIcon('fare') + '</th></tr>');
+            safeSetHTML('table-head', `<tr class="bg-slate-50 text-[10px] uppercase font-black text-slate-400"><th class="p-3 sort-header" onclick="handleFlightSort('date')">日付${getSortIcon('date')}</th><th class="p-3 sort-header" onclick="handleFlightSort('flightNo')">便名${getSortIcon('flightNo')}</th><th class="p-3 sort-header" onclick="handleFlightSort('from')">出発地${getSortIcon('from')}</th><th class="p-3 sort-header" onclick="handleFlightSort('depTime')">時間${getSortIcon('depTime')}</th><th class="p-3 sort-header" onclick="handleFlightSort('to')">到着地${getSortIcon('to')}</th><th class="p-3 sort-header" onclick="handleFlightSort('arrTime')">時間${getSortIcon('arrTime')}</th><th class="p-3 sort-header text-center" onclick="handleFlightSort('status')">状態${getSortIcon('status')}</th><th class="p-3 sort-header text-right" onclick="handleFlightSort('fare')">料金${getSortIcon('fare')}</th></tr>`);
             
-            safeSetHTML('table-body', filteredTable.map(p => '<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 whitespace-nowrap font-bold text-slate-800 text-xs">' + p.date + '</td><td class="p-3 font-mono text-[11px] text-slate-500">' + (p.airline || '') + (p.flightNo || '') + '</td><td class="p-3 font-black text-slate-700 text-xs">' + p.from + '</td><td class="p-3 text-slate-400 font-bold text-[10px]">' + p.depTime + '</td><td class="p-3 font-black text-slate-700 text-xs">' + p.to + '</td><td class="p-3 text-slate-400 font-bold text-[10px]">' + p.arrTime + '</td><td class="p-3 text-center"><span class="inline-block px-2 py-0.5 rounded-full text-[9px] font-black shadow-sm ' + (p.status === '済' ? 'bg-slate-200 text-slate-500' : 'bg-red-600 text-white') + '">' + (p.status === '済' ? '済' : '予定') + '</span></td><td class="p-3 text-right font-black text-slate-800 text-xs">' + (p.fare > 0 ? '¥' + p.fare.toLocaleString() : '') + '</td></tr>').join('') || '<tr><td colspan="8" class="p-8 text-center text-slate-400 italic">該当データはありません</td></tr>');
+            safeSetHTML('table-body', filteredTable.map(p => `
+                <tr class="border-b hover:bg-slate-50 transition-colors">
+                    <td class="p-3 whitespace-nowrap font-bold text-slate-800 text-xs">${p.date}</td>
+                    <td class="p-3 font-mono text-[11px] text-slate-500">${(p.airline || '')}${(p.flightNo || '')}</td>
+                    <td class="p-3 font-black text-slate-700 text-xs">${p.from}</td>
+                    <td class="p-3 text-slate-400 font-bold text-[10px]">${p.depTime}</td>
+                    <td class="p-3 font-black text-slate-700 text-xs">${p.to}</td>
+                    <td class="p-3 text-slate-400 font-bold text-[10px]">${p.arrTime}</td>
+                    <td class="p-3 text-center"><span class="inline-block px-2 py-0.5 rounded-full text-[9px] font-black shadow-sm ${p.status === '済' ? 'bg-slate-200 text-slate-500' : 'bg-red-600 text-white'}">${p.status === '済' ? '済' : '予定'}</span></td>
+                    <td class="p-3 text-right font-black text-slate-800 text-xs">${p.fare > 0 ? '¥' + p.fare.toLocaleString() : ''}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="8" class="p-8 text-center text-slate-400 italic">該当データはありません</td></tr>');
+            
+            safeSetHTML('mobile-details-list', filteredTable.map(p => `
+                <div class="details-card border-l-4 ${p.status === '済' ? 'border-l-slate-300' : 'border-l-red-600'}">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded">${p.date} ${getDayOfWeek(p.date)}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-black ${p.status === '済' ? 'text-slate-400' : 'bg-red-600 text-white'}">${p.status === '済' ? '搭乗済' : '搭乗予定'}</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between gap-2 py-1">
+                        <div class="flex-1">
+                            <p class="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">From</p>
+                            <p class="text-sm font-black text-slate-800 leading-tight">${p.from}</p>
+                            <p class="text-[11px] font-bold text-slate-600">${p.depTime}</p>
+                        </div>
+                        <div class="flex flex-col items-center px-2">
+                            <i class="fa-solid fa-plane text-slate-200 text-sm"></i>
+                            <div class="h-px w-8 bg-slate-100 mt-1"></div>
+                        </div>
+                        <div class="flex-1 text-right">
+                            <p class="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">To</p>
+                            <p class="text-sm font-black text-slate-800 leading-tight">${p.to}</p>
+                            <p class="text-[11px] font-bold text-slate-600">${p.arrTime}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center pt-2 border-t border-slate-50">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-tighter">${p.airline || ''}${p.flightNo || ''}</span>
+                        </div>
+                        <span class="text-sm font-black text-slate-900">${p.fare > 0 ? '¥' + p.fare.toLocaleString() : '-'}</span>
+                    </div>
+                </div>
+            `).join('') || '<p class="text-center py-8 text-slate-400 text-xs italic">該当データはありません</p>');
         }
 
         // --- Charts ---
@@ -837,8 +995,8 @@
         function renderFlightStackedBar(id, list) {
             const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
             const todayStr = new Date().toISOString().split('T')[0];
-            const startVal = document.getElementById('chartFilterStart').value;
-            const endVal = document.getElementById('chartFilterEnd').value;
+            const startVal = document.getElementById('chartFilterStart')?.value || '';
+            const endVal = document.getElementById('chartFilterEnd')?.value || '';
             let months = [];
             if (isAllDisplayMode) {
                 months = [...new Set(appData.plans.map(d => d.date.substring(0, 7)))].sort();
@@ -859,7 +1017,6 @@
             if (!container) return;
             const displayData = isRankingExpanded ? data : data.slice(0, 8);
             
-            // 重要：詳細表示時は1項目あたり40pxの高さを確保して潰れないようにする
             if (isRankingExpanded) {
                 const calculatedHeight = Math.max(256, displayData.length * 40);
                 container.style.height = calculatedHeight + "px";
@@ -876,7 +1033,7 @@
                         data: displayData.map(d => d[1]), 
                         backgroundColor: '#E10009', 
                         borderRadius: 4, 
-                        barThickness: 20 // バーの太さを固定
+                        barThickness: 20 
                     }] 
                 }, 
                 options: { 
