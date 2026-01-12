@@ -2,7 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 修正ポイント: viewport-fit=cover を追加し、iPhoneの画面全体を利用可能にする -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>JAL Status & Flight Manager Pro</title>
     <!-- iOS Home Screen Icon & Web App Meta -->
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -15,6 +16,33 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
+        /* 修正ポイント: Safe Area 対策の追記 */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
+        body {
+            /* iPhoneのノッチやホームバーを考慮したパディング設定 */
+            padding:
+                env(safe-area-inset-top)
+                env(safe-area-inset-right)
+                env(safe-area-inset-bottom)
+                env(safe-area-inset-left);
+        }
+
+        /* 修正ポイント: モバイル表示時の幅制限解除 */
+        @media (max-width: 768px) {
+            .container, 
+            .max-w-screen-xl, 
+            .max-w-4xl {
+                max-width: 100% !important;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+        }
+
         :root {
             --jal-red: #E10009;
             --jal-black: #000000;
