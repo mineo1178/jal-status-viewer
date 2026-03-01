@@ -164,7 +164,7 @@
 
     <div id="loading-overlay">
         <div class="spinner mb-4"></div>
-        <p class="text-sm font-bold text-slate-600">データを取得中...</p>
+        <p class="text-sm font-bold text-slate-600">データを同期中...</p>
     </div>
 
     <div id="error-box" class="fixed top-4 left-1/2 -translate-x-1/2 z-[10000] hidden">
@@ -349,12 +349,27 @@
                                 区間搭乗ランキング <span class="text-[10px] font-normal text-slate-400 ml-1">(全期間・方向別)</span>
                             </h3>
                         </div>
-                        <div id="rankingChartContainer" class="transition-all duration-300 overflow-hidden relative" style="height: 256px;">
-                            <canvas id="rankingChartCombined"></canvas>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                            <div id="rankingChartContainer" class="transition-all duration-300 overflow-hidden relative" style="height: 256px;">
+                                <canvas id="rankingChartCombined"></canvas>
+                            </div>
+                            <div class="border rounded-xl overflow-hidden shadow-sm">
+                                <table class="w-full text-left border-collapse bg-white text-xs">
+                                    <thead class="bg-slate-50 border-b">
+                                        <tr>
+                                            <th class="p-3 font-bold text-slate-600 uppercase">区間 (搭乗履歴)</th>
+                                            <th class="p-3 font-bold text-slate-600 text-right uppercase">搭乗回数</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="rankingTableBody" class="divide-y divide-slate-50">
+                                        <tr><td colspan="2" class="p-4 text-center text-slate-400 italic">データがありません</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                         <div class="flex justify-end mt-4">
                             <button id="rankingExpandBtn" onclick="toggleRankingExpand()" class="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-1.5 rounded-full transition-all flex items-center gap-1 shadow-sm border border-slate-200">
-                                <span>詳細を表示</span><i class="fa-solid fa-chevron-up"></i>
+                                <span>詳細を表示</span><i class="fa-solid fa-chevron-down"></i>
                             </button>
                         </div>
                     </div>
@@ -572,7 +587,6 @@
             const monthSel = document.getElementById('monthSelector');
             if (monthSel) { monthSel.classList.add('hidden'); monthSel.value = 'all'; }
             
-            // 期間入力欄のデフォルト設定
             const sInp = document.getElementById('chartFilterStart');
             const eInp = document.getElementById('chartFilterEnd');
             if (sInp && eInp) {
@@ -581,11 +595,9 @@
                 const end = new Date();
 
                 if (tabId === 'flights') {
-                    // フライト実績チャート: 前後3ヶ月
                     start.setMonth(today.getMonth() - 3);
                     end.setMonth(today.getMonth() + 3);
                 } else {
-                    // マイル・LSP: 過去6ヶ月
                     start.setMonth(today.getMonth() - 6);
                 }
                 
@@ -608,6 +620,8 @@
             document.getElementById('lineChartContainer').classList.toggle('lg:col-span-2', tabId === 'flights');
             document.getElementById('mileTrendSection').classList.toggle('hidden', tabId !== 'miles');
             document.getElementById('lspTrendSection').classList.toggle('hidden', tabId !== 'lsp');
+            // フライト管理の時だけランキングセクションを表示
+            document.getElementById('rankingSection').classList.toggle('hidden', tabId !== 'flights');
             
             if (tabId === 'flights') populateMonthSelector(appData.plans);
             
@@ -766,7 +780,6 @@
                     filteredForTable = isAllDisplayMode ? list : list.filter(i => (!sVal || i.date >= sVal) && (!eVal || i.date <= eVal));
                 }
 
-                // カテゴリ/ステータス/月フィルタを適用
                 const monthFilter = document.getElementById('monthSelector')?.value || 'all';
                 let finalFiltered = filteredForTable;
                 if (monthFilter !== 'all') finalFiltered = finalFiltered.filter(i => i.date.startsWith(monthFilter));
@@ -790,7 +803,6 @@
             let displayFop = [...appData.yearlyMonthly.fop];
             let displayFl = [...appData.yearlyMonthly.fl];
 
-            // 未来月のデータを null にして非表示にする (グラフの枠組み12ヶ月は維持)
             if (appData.yearlyMonthly.year === currentYear) {
                 for (let i = currentMonthIdx + 1; i < 12; i++) {
                     displayFop[i] = null;
@@ -806,16 +818,11 @@
         function updateMilesTab(data, catFilter) {
             const allTimeBreakdown = appData.miles.reduce((g, d) => { const c = categorizeMile(d.content); g[c] = (g[c]||0)+d.gain; return g; }, {});
             renderPieChart('detailPieChart', Object.fromEntries(Object.entries(allTimeBreakdown).filter(([_,v])=>v>0)));
-            
-            // 右上を「保有マイル数」にする
             safeSetText('totalEarnedValue', '保有マイル: ' + appData.stats.miles.toLocaleString() + " mile");
-            
             renderStackedBar('detailLineChart', data, 'gain');
             renderMixedTrendChart('mileMixedChart', getFilteredTrendData(appData.miles, document.getElementById('mileTrendPeriod').value), 'gain', 'total', '獲得', '残高', '#1e293b', '#E10009');
-            
             const sel = document.getElementById('categorySelector');
             if (sel) { const cats = ['all', ...new Set(appData.miles.map(m => categorizeMile(m.content)))].sort(); sel.innerHTML = cats.map(c => `<option value="${c}" ${c === catFilter ? 'selected' : ''}>${c === 'all' ? '全ての種類' : c}</option>`).join(''); }
-            
             const sorted = [...data].sort((a,b) => flightSortOrder === 'asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
             safeSetHTML('table-head', `<tr><th class="p-3">日付</th><th class="p-3">カテゴリ</th><th class="p-3">内容</th><th class="p-3 text-right">獲得</th><th class="p-3 text-right">残高</th></tr>`);
             safeSetHTML('table-body', sorted.map(m => `<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 font-bold text-xs">${m.date}</td><td class="p-3 text-[10px] font-bold text-slate-500">${categorizeMile(m.content)}</td><td class="p-3 font-bold text-xs text-slate-700">${m.content}</td><td class="p-3 text-right ${m.gain<0?'text-slate-400':'text-red-500'} font-black text-xs">${m.gain.toLocaleString()}</td><td class="p-3 text-right font-bold text-xs text-slate-800">${m.total.toLocaleString()}</td></tr>`).join(''));
@@ -826,16 +833,11 @@
             const allTime = appData.lsp.reduce((g, d) => { g[d.ui_category] = (g[d.ui_category]||0)+d.points; return g; }, {});
             renderPieChart('detailPieChart', allTime);
             safeSetText('totalEarnedValue', '累計: ' + appData.stats.lsp.toLocaleString() + " LSP");
-            
             renderStackedBar('detailLineChart', data, 'points');
-            
-            // LSP推移：最初の実績日から描画
             const trendData = getFilteredTrendData(appData.lsp, document.getElementById('lspTrendPeriod').value);
             renderMixedTrendChart('lspMixedChart', trendData, 'points', 'total', '獲得', '累計', '#1e293b', '#3b82f6', false);
-            
             const sel = document.getElementById('categorySelector');
             if (sel) { const cats = ['all', ...new Set(appData.lsp.map(m => m.ui_category))].sort(); sel.innerHTML = cats.map(c => `<option value="${c}" ${c === catFilter ? 'selected' : ''}>${c === 'all' ? '全ての種類' : c}</option>`).join(''); }
-            
             const sorted = [...data].sort((a,b) => flightSortOrder === 'asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
             safeSetHTML('table-head', `<tr><th class="p-3">日付</th><th class="p-3">カテゴリ</th><th class="p-3">内容</th><th class="p-3 text-right">獲得</th><th class="p-3 text-right">累計</th></tr>`);
             safeSetHTML('table-body', sorted.map(l => `<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 font-bold text-xs">${l.date}</td><td class="p-3 text-[10px] font-bold text-slate-500">${l.ui_category}</td><td class="p-3 font-bold text-xs text-slate-700">${l.content}</td><td class="p-3 text-right text-blue-500 font-black text-xs">+${l.points.toLocaleString()}</td><td class="p-3 text-right font-bold text-xs text-slate-800">${l.total.toLocaleString()}</td></tr>`).join(''));
@@ -843,7 +845,6 @@
         }
 
         function updateFlightsTab(data, statusFilter) {
-            // チャートは実績の期間フィルタ（前後3ヶ月）に従う
             const sVal = document.getElementById('chartFilterStart')?.value || '';
             const eVal = document.getElementById('chartFilterEnd')?.value || '';
             const chartFilteredPlans = appData.plans.filter(i => (!sVal || i.date >= sVal) && (!eVal || i.date <= eVal));
@@ -855,10 +856,25 @@
             safeSetText('stat-planned-flights-detail', upcoming.length);
             safeSetHTML('flightCards', upcoming.slice(0, 10).map(p => `<div class="bg-red-50 border border-red-100 p-3 rounded-xl min-w-[180px] shadow-sm"><p class="text-[10px] font-bold text-red-500">${p.date} ${getDayOfWeek(p.date)}</p><p class="text-sm font-black text-slate-800 leading-tight">${p.from} → ${p.to}</p><p class="text-[9px] text-slate-400 font-bold">${p.airline}${p.flightNo} ${p.depTime}</p></div>`).join('') || '<p class="text-xs text-slate-400 italic">直近の搭乗予定はありません</p>');
             
-            const routeStats = {}; allPlans.forEach(p => { if(p.status === '済'){ const r = `${p.from} → ${p.to}`; routeStats[r] = (routeStats[r] || 0) + 1; }});
-            renderRankingBarChartCombined('rankingChartCombined', Object.entries(routeStats).sort((a,b)=>b[1]-a[1]));
+            const routeStats = {}; 
+            allPlans.forEach(p => { 
+                if(p.status === '済'){ 
+                    const r = `${p.from} → ${p.to}`; 
+                    routeStats[r] = (routeStats[r] || 0) + 1; 
+                }
+            });
+            const routeEntries = Object.entries(routeStats).sort((a,b)=>b[1]-a[1]);
+            renderRankingBarChartCombined('rankingChartCombined', routeEntries);
             
-            // 明細テーブルは独立したフィルタ結果（引数data）を使用
+            // 搭乗履歴テーブルの更新
+            const dispEntries = isRankingExpanded ? routeEntries : routeEntries.slice(0, 10);
+            safeSetHTML('rankingTableBody', dispEntries.map(e => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="p-3 font-bold text-slate-700">${e[0]}</td>
+                    <td class="p-3 text-right font-black text-red-600">${e[1]}<span class="text-[10px] ml-1 text-slate-400">回</span></td>
+                </tr>
+            `).join('') || '<tr><td colspan="2" class="p-4 text-center text-slate-400 italic">実績データがありません</td></tr>');
+            
             const sorted = [...data].sort((a,b) => flightSortOrder === 'asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
             const getSortIcon = (key) => flightSortKey === key ? (flightSortOrder === 'asc' ? ' <i class="fa-solid fa-sort-up"></i>' : ' <i class="fa-solid fa-sort-down"></i>') : ' <i class="fa-solid fa-sort text-slate-200"></i>';
             safeSetHTML('table-head', `<tr><th class="p-3 sort-header" onclick="handleFlightSort('date')">日付${getSortIcon('date')}</th><th class="p-3">便名</th><th class="p-3">出発地</th><th class="p-3">到着地</th><th class="p-3 text-center">状態</th><th class="p-3 text-right">料金</th></tr>`);
@@ -912,7 +928,6 @@
             let lineData = dates.map(d => { const f = sorted.filter(i => i.date === d); return f.length ? f[f.length-1][lK] : null; });
             let barData = dates.map(d => sorted.filter(i => i.date === d).reduce((s, i) => s + Math.abs(i[bK]), 0));
 
-            // 年度初めの0スタートが不要な場合はそのまま描画
             if (startZero && dates.length > 0) {
                 dates.unshift("年度初め");
                 lineData.unshift(0);
@@ -929,7 +944,6 @@
             const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
             const today = new Date();
             let months = [];
-            // 前後3ヶ月を表示（計7ヶ月分）
             for (let i = -3; i <= 3; i++) {
                 const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
                 months.push(d.toISOString().substring(0, 7));
