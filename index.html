@@ -30,11 +30,8 @@
                 env(safe-area-inset-left);
         }
 
-        /* モバイル表示時の幅制限解除 */
         @media (max-width: 768px) {
-            .container, 
-            .max-w-screen-xl, 
-            .max-w-4xl {
+            .container, .max-w-screen-xl, .max-w-4xl {
                 max-width: 100% !important;
                 margin-left: 0 !important;
                 margin-right: 0 !important;
@@ -50,7 +47,6 @@
             background-color: #f1f5f9;
             -webkit-tap-highlight-color: transparent;
         }
-        /* Desktop Sidebar Styles */
         #sidebar {
             transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             width: 64px;
@@ -77,7 +73,6 @@
             background-color: #1e293b;
             color: white;
         }
-        /* Mobile Bottom Nav Styles */
         .mobile-nav-item.active {
             color: var(--jal-red);
         }
@@ -115,6 +110,11 @@
             background-color: #fff;
             color: #475569;
         }
+        input[disabled] {
+            background-color: #f1f5f9;
+            color: #cbd5e1;
+            cursor: not-allowed;
+        }
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -127,7 +127,6 @@
             background-color: #f1f5f9;
         }
 
-        /* Responsive Details Styling */
         .details-card {
             background: white;
             border: 1px solid #eef2f6;
@@ -139,11 +138,43 @@
             flex-direction: column;
             gap: 0.75rem;
         }
+
+        #loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--jal-red);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="flex flex-col md:flex-row h-screen overflow-hidden">
 
-    <!-- Sidebar (Desktop only) -->
+    <div id="loading-overlay">
+        <div class="spinner mb-4"></div>
+        <p class="text-sm font-bold text-slate-600">データを同期中...</p>
+    </div>
+
+    <div id="error-box" class="fixed top-4 left-1/2 -translate-x-1/2 z-[10000] hidden">
+        <div class="bg-red-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span id="error-msg" class="text-xs font-bold">エラーが発生しました</span>
+            <button onclick="document.getElementById('error-box').classList.add('hidden')" class="ml-2 opacity-70 hover:opacity-100"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+    </div>
+
     <aside id="sidebar" class="hidden md:flex bg-[#0f172a] text-slate-400 flex-col h-full z-50 shadow-2xl shrink-0">
         <div class="h-16 flex items-center px-4 border-b border-slate-800 shrink-0">
             <button id="toggleBtn" class="text-xl hover:text-white transition-colors w-8 h-8 flex items-center justify-center">
@@ -172,13 +203,21 @@
         </nav>
     </aside>
 
-    <!-- Main Content -->
     <main class="flex-1 flex flex-col h-full min-w-0 pb-16 md:pb-0">
         <header class="h-14 md:h-16 bg-white border-b flex items-center justify-between px-4 md:px-8 shrink-0 shadow-sm z-10">
             <div class="flex items-center gap-4">
                 <h2 id="tabTitle" class="text-lg md:text-xl font-extrabold text-slate-800 tracking-tight">ダッシュボード</h2>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
+                <button onclick="document.getElementById('fileInput').click()" class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition-colors text-xs font-bold border border-slate-200">
+                    <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                    <span class="hidden sm:inline">ファイルを読込</span>
+                </button>
+                <input type="file" id="fileInput" class="hidden" accept=".xlsx,.xls" onchange="handleFileUpload(this)">
+                
+                <button onclick="syncFromUrl()" class="text-slate-400 hover:text-red-600 transition-colors">
+                    <i class="fa-solid fa-rotate text-sm"></i>
+                </button>
                 <div class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-900 flex items-center justify-center text-white border-2 border-white shadow-md">
                     <i class="fa-solid fa-user-tie text-xs md:text-base"></i>
                 </div>
@@ -189,13 +228,18 @@
             
             <!-- DASHBOARD TAB -->
             <div id="tab-dashboard" class="tab-content active space-y-6 md:space-y-8">
+                <div id="welcome-message" class="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6 flex items-center gap-3">
+                    <i class="fa-solid fa-circle-info text-blue-500"></i>
+                    <p class="text-xs font-bold text-blue-800">上の「ファイルを読込」ボタンからExcelデータを選択してください。</p>
+                </div>
+
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                     <div onclick="switchTab('miles')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-[#E10009] cursor-pointer">
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Miles</p>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Miles</p>
                         <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-miles" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">mile</span></div>
                     </div>
                     <div onclick="switchTab('lsp')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-blue-500 cursor-pointer">
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">LSP</p>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total LSP</p>
                         <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-lsp" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">pts</span></div>
                     </div>
                     <div onclick="switchTab('flights')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-orange-500 cursor-pointer">
@@ -203,7 +247,7 @@
                         <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-fop" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">FOP</span></div>
                     </div>
                     <div onclick="switchTab('flights')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-emerald-500 cursor-pointer">
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Flights</p>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Yearly Flights</p>
                         <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-yearly-flights" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">回</span></div>
                     </div>
                 </div>
@@ -211,7 +255,7 @@
                 <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100">
                     <h3 class="font-black text-sm md:text-base text-slate-800 flex items-center gap-2 mb-4 md:mb-6">
                         <i class="fa-solid fa-chart-line text-[#E10009]"></i> 
-                        <span>ステータス進捗</span>
+                        <span id="chart-main-title">ステータス進捗 (2026年度実績)</span>
                     </h3>
                     <div class="h-64 md:h-80"><canvas id="annualTrendChart"></canvas></div>
                 </div>
@@ -234,7 +278,7 @@
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
                         <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Upcoming Flights</p>
                         <div class="flex items-baseline gap-2">
-                            <span id="stat-planned-flights" class="text-3xl md:text-4xl font-black text-red-600">0</span>
+                            <span id="stat-planned-flights-detail" class="text-3xl md:text-4xl font-black text-red-600">0</span>
                             <span class="text-xs font-bold text-slate-400">予定</span>
                         </div>
                     </div>
@@ -316,7 +360,7 @@
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="font-black text-sm md:text-base text-slate-800 flex items-center gap-2">
                                 <i class="fa-solid fa-ranking-star text-red-600"></i>
-                                区間搭乗ランキング <span class="text-[10px] font-normal text-slate-400 ml-1">(全期間・組み合わせ)</span>
+                                区間搭乗ランキング <span class="text-[10px] font-normal text-slate-400 ml-1">(全期間・方向別)</span>
                             </h3>
                         </div>
                         <div id="rankingChartContainer" class="transition-all duration-300 overflow-hidden relative" style="height: 256px;">
@@ -334,12 +378,17 @@
                     <div class="p-4 border-b border-slate-50 flex flex-wrap items-center justify-between gap-3">
                         <h3 class="font-bold text-slate-800">データ明細</h3>
                         <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                            <select id="mobileSortSelector" onchange="handleMobileSort(this.value)" class="md:hidden flex-1 font-bold bg-slate-50 border-slate-200">
+                                <option value="date:desc">日付 (新しい順)</option>
+                                <option value="date:asc">日付 (古い順)</option>
+                                <option value="points:desc" id="mob-sort-val-desc">獲得量 (多)</option>
+                                <option value="points:asc" id="mob-sort-val-asc">獲得量 (少)</option>
+                            </select>
                             <select id="monthSelector" onchange="updateUI()" class="flex-1 md:flex-none hidden bg-red-50 border-red-100 text-red-600 font-bold"></select>
                             <select id="categorySelector" onchange="updateUI()" class="flex-1 md:flex-none font-bold"></select>
                         </div>
                     </div>
                     
-                    <!-- デスクトップ用: 横長テーブル -->
                     <div class="hidden md:block table-container">
                         <table class="w-full text-left border-collapse min-w-[900px]">
                             <thead id="table-head" class="sticky top-0 bg-white z-10 shadow-sm border-b"></thead>
@@ -347,10 +396,7 @@
                         </table>
                     </div>
 
-                    <!-- スマートフォン用: カード形式リスト -->
-                    <div id="mobile-details-list" class="block md:hidden p-4 bg-slate-50/50 space-y-4">
-                        <!-- 動的にカードが生成される -->
-                    </div>
+                    <div id="mobile-details-list" class="block md:hidden p-4 bg-slate-50/50 space-y-4"></div>
                 </div>
             </div>
         </div>
@@ -377,7 +423,11 @@
 
     <script>
         // --- State ---
-        let appData = { plans: [], lsp: [], miles: [], stats: { miles: 0, lsp: 0, fop: 0, yearlyFlights: 0, plannedFlights: 0 } };
+        let appData = { 
+            plans: [], lsp: [], miles: [], 
+            stats: { miles: 0, lsp: 0, fop: 0, yearlyFlights: 0, plannedFlights: 0 }, 
+            yearlyMonthly: { fop: Array(12).fill(0), fl: Array(12).fill(0), year: "2026" } 
+        };
         let currentTab = 'dashboard';
         let charts = {};
         let isAllDisplayMode = false;
@@ -393,14 +443,31 @@
         // --- Helpers ---
         function parseDate(val) {
             if (!val) return "";
-            if (val instanceof Date) return val.toISOString().split('T')[0];
-            if (typeof val === 'number') { 
-                const d = new Date((val - 25569) * 86400 * 1000); 
-                return d.toISOString().split('T')[0];
+            if (val instanceof Date) {
+                return new Date(val.getTime() - (val.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
             }
-            let str = String(val).replace(/\//g, '-').trim();
-            if (str.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) return str;
-            return str;
+            if (typeof val === 'number') { 
+                const d = new Date(Math.round((val - 25569) * 86400 * 1000 + 1));
+                return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            }
+            let str = String(val).replace(/[\s\u00A0]/g, '').trim();
+            // JAL集計行の無視
+            if (str.includes('まで')) return "";
+            const matchIso = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+            if (matchIso) {
+                return `${matchIso[1]}-${matchIso[2].padStart(2, '0')}-${matchIso[3].padStart(2, '0')}`;
+            }
+            return "";
+        }
+
+        function safeParseInt(val) {
+            if (val === undefined || val === null) return 0;
+            let s = String(val).replace(/[０-９]/g, m => String.fromCharCode(m.charCodeAt(0) - 0xFEE0));
+            s = s.replace(/[\s\u00A0,]/g, '');
+            if (s === "-" || s === "－" || s === "") return 0;
+            const match = s.match(/-?\d+/);
+            const i = match ? parseInt(match[0]) : 0;
+            return isNaN(i) ? 0 : i;
         }
 
         function formatSimpleTime(val) {
@@ -414,11 +481,9 @@
                 let s = String(val).trim();
                 if (s.includes(':')) {
                     const parts = s.split(':');
-                    h = parseInt(parts[0]);
-                    m = parseInt(parts[1]);
+                    h = parseInt(parts[0]); m = parseInt(parts[1]);
                 } else if (s.length === 4 && !isNaN(s)) {
-                    h = parseInt(s.substring(0, 2));
-                    m = parseInt(s.substring(2, 4));
+                    h = parseInt(s.substring(0, 2)); m = parseInt(s.substring(2, 4));
                 } else {
                     return s;
                 }
@@ -433,34 +498,51 @@
             return isNaN(d.getTime()) ? "" : "(" + days[d.getDay()] + ")";
         }
 
-        function getRangeText() {
-            if (isAllDisplayMode) return '<span class="text-[10px] md:text-xs font-normal text-slate-400 ml-2">(全期間データ)</span>';
-            const startInput = document.getElementById('chartFilterStart');
-            const endInput = document.getElementById('chartFilterEnd');
-            const start = startInput ? startInput.value : '';
-            const end = endInput ? endInput.value : '';
-            return start && end ? '<span class="text-[10px] md:text-xs font-normal text-slate-400 ml-2">(' + start + ' 〜 ' + end + ')</span>' : '';
+        window.onload = async () => { await syncFromUrl(); };
+
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const overlay = document.getElementById('loading-overlay');
+            if(overlay) overlay.style.display = 'flex';
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const wb = XLSX.read(data, { type: 'array', cellDates: true });
+                    appData.lsp = []; appData.miles = []; appData.plans = [];
+                    wb.SheetNames.forEach(name => processRows(name, XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 })));
+                    document.getElementById('welcome-message')?.classList.add('hidden');
+                    updateUI();
+                } catch (err) { showError("ファイルの解析に失敗しました: " + err.message); }
+                finally { if(overlay) overlay.style.display = 'none'; }
+            };
+            reader.readAsArrayBuffer(file);
         }
 
-        window.onload = async () => {
-            const today = new Date();
-            const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(today.getMonth() - 6);
-            if (document.getElementById('chartFilterStart')) document.getElementById('chartFilterStart').value = sixMonthsAgo.toISOString().split('T')[0];
-            if (document.getElementById('chartFilterEnd')) document.getElementById('chartFilterEnd').value = today.toISOString().split('T')[0];
-            await syncFromUrl();
-        };
+        function showError(msg) {
+            const eBox = document.getElementById('error-box');
+            const eMsg = document.getElementById('error-msg');
+            if(eBox && eMsg) {
+                eMsg.innerText = msg;
+                eBox.classList.remove('hidden');
+                setTimeout(() => eBox.classList.add('hidden'), 5000);
+            }
+        }
 
         document.getElementById('toggleBtn').addEventListener('click', () => { document.getElementById('sidebar').classList.toggle('expanded'); });
 
         function toggleAllDisplay() {
             isAllDisplayMode = !isAllDisplayMode;
             const btn = document.getElementById('allDisplayBtn');
+            const sInp = document.getElementById('chartFilterStart');
+            const eInp = document.getElementById('chartFilterEnd');
             if (isAllDisplayMode) {
                 btn.classList.add('bg-slate-800', 'text-white');
-                btn.classList.remove('bg-slate-100', 'text-slate-600');
+                if(sInp) sInp.disabled = true; if(eInp) eInp.disabled = true;
             } else {
                 btn.classList.remove('bg-slate-800', 'text-white');
-                btn.classList.add('bg-slate-100', 'text-slate-600');
+                if(sInp) sInp.disabled = false; if(eInp) eInp.disabled = false;
             }
             updateUI();
         }
@@ -468,11 +550,13 @@
         function toggleRankingExpand() {
             isRankingExpanded = !isRankingExpanded;
             const btn = document.getElementById('rankingExpandBtn');
-            if (isRankingExpanded) {
-                btn.innerHTML = '<span>閉じる</span><i class="fa-solid fa-chevron-up"></i>';
-            } else {
-                btn.innerHTML = '<span>詳細を表示</span><i class="fa-solid fa-chevron-down"></i>';
-            }
+            btn.innerHTML = isRankingExpanded ? '<span>閉じる</span><i class="fa-solid fa-chevron-up"></i>' : '<span>詳細を表示</span><i class="fa-solid fa-chevron-down"></i>';
+            updateUI();
+        }
+
+        function handleMobileSort(val) {
+            const [key, order] = val.split(':');
+            flightSortKey = key; flightSortOrder = order;
             updateUI();
         }
 
@@ -480,613 +564,330 @@
             const sel = document.getElementById('monthSelector');
             if (!sel) return;
             const months = [...new Set(data.map(p => p.date.substring(0, 7)))].sort().reverse();
-            const currentVal = sel.value || 'all';
-            sel.innerHTML = '<option value="all">全期間 (月単位)</option>' + 
-                months.map(m => '<option value="' + m + '">' + m.replace('-', '年') + '月</option>').join('');
-            sel.value = currentVal;
+            sel.innerHTML = '<option value="all">全期間 (月単位)</option>' + months.map(m => '<option value="' + m + '">' + m.replace('-', '年') + '月</option>').join('');
             sel.classList.remove('hidden');
         }
 
         function switchTab(tabId) {
             currentTab = tabId;
-            isAllDisplayMode = false;
-            isRankingExpanded = false;
-            
             const monthSel = document.getElementById('monthSelector');
-            if (monthSel) {
-                monthSel.classList.add('hidden');
-                monthSel.value = 'all';
-            }
-
-            const startInput = document.getElementById('chartFilterStart');
-            const endInput = document.getElementById('chartFilterEnd');
-
-            if (startInput && endInput) {
-                const today = new Date();
-                if (tabId === 'miles' || tabId === 'lsp') {
-                    const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(today.getMonth() - 6);
-                    startInput.value = sixMonthsAgo.toISOString().split('T')[0];
-                    endInput.value = today.toISOString().split('T')[0];
-                } else if (tabId === 'flights') {
-                    const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(today.getMonth() - 3);
-                    const threeMonthsLater = new Date(); threeMonthsLater.setMonth(today.getMonth() + 3);
-                    startInput.value = threeMonthsAgo.toISOString().split('T')[0];
-                    endInput.value = threeMonthsLater.toISOString().split('T')[0];
-                    populateMonthSelector(appData.plans);
-                }
-            }
-
+            if (monthSel) { monthSel.classList.add('hidden'); monthSel.value = 'all'; }
             document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.tab === tabId));
             document.querySelectorAll('.mobile-nav-item').forEach(el => el.classList.toggle('active', el.dataset.tabMob === tabId));
             document.getElementById('tabTitle').innerText = { 'dashboard': 'ダッシュボード', 'miles': 'マイル管理', 'lsp': 'LSP管理', 'flights': 'フライト管理' }[tabId];
-            
-            const dashTab = document.getElementById('tab-dashboard');
-            const detailTab = document.getElementById('tab-detail');
-            const pieContainer = document.getElementById('pieChartContainer');
-            const lineContainer = document.getElementById('lineChartContainer');
-            const flightSummary = document.getElementById('flightSummarySection');
-            const mileTrend = document.getElementById('mileTrendSection');
-            const lspTrend = document.getElementById('lspTrendSection');
-            const allBtn = document.getElementById('allDisplayBtn');
-
-            if (dashTab) dashTab.classList.toggle('active', tabId === 'dashboard');
-            if (detailTab) detailTab.classList.toggle('active', tabId !== 'dashboard');
-            if (pieContainer) pieContainer.classList.remove('hidden');
-            if (lineContainer) lineContainer.classList.remove('lg:col-span-2');
-            if (flightSummary) flightSummary.classList.add('hidden');
-            if (mileTrend) mileTrend.classList.add('hidden');
-            if (lspTrend) lspTrend.classList.add('hidden');
-            if (allBtn) allBtn.classList.toggle('hidden', tabId === 'dashboard');
-
-            if (tabId === 'flights') {
-                if (pieContainer) pieContainer.classList.add('hidden');
-                if (lineContainer) lineContainer.classList.add('lg:col-span-2');
-                if (flightSummary) flightSummary.classList.remove('hidden');
-            } else if (tabId === 'miles') {
-                if (mileTrend) mileTrend.classList.remove('hidden');
-            } else if (tabId === 'lsp') {
-                if (lspTrend) lspTrend.classList.remove('hidden');
-            }
+            document.getElementById('tab-dashboard').classList.toggle('active', tabId === 'dashboard');
+            document.getElementById('tab-detail').classList.toggle('active', tabId !== 'dashboard');
+            document.getElementById('flightSummarySection').classList.toggle('hidden', tabId !== 'flights');
+            document.getElementById('pieChartContainer').classList.toggle('hidden', tabId === 'flights');
+            document.getElementById('lineChartContainer').classList.toggle('lg:col-span-2', tabId === 'flights');
+            document.getElementById('mileTrendSection').classList.toggle('hidden', tabId !== 'miles');
+            document.getElementById('lspTrendSection').classList.toggle('hidden', tabId !== 'lsp');
+            if (tabId === 'flights') populateMonthSelector(appData.plans);
             updateUI();
         }
 
         async function syncFromUrl() {
+            const overlay = document.getElementById('loading-overlay');
+            if(overlay) overlay.style.display = 'flex';
             try {
                 const response = await fetch(EXCEL_URL);
-                if (!response.ok) throw new Error("HTTP " + response.status);
+                if (!response.ok) throw new Error("Fetch failed");
                 const buffer = await response.arrayBuffer();
                 const wb = XLSX.read(buffer, { cellDates: true });
+                appData.lsp = []; appData.miles = []; appData.plans = [];
                 wb.SheetNames.forEach(name => processRows(name, XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 })));
+                document.getElementById('welcome-message')?.classList.add('hidden');
                 updateUI();
-            } catch (e) { console.error("Sync Error:", e.message); }
+            } catch (e) { console.warn("Auto-sync failed."); }
+            finally { if(overlay) overlay.style.display = 'none'; }
+        }
+
+        function getCol(h, kws) {
+            if (!h || !Array.isArray(h)) return -1;
+            return h.findIndex(c => {
+                if (c === null || c === undefined) return false;
+                const n = String(c).replace(/[\s\u00A0\t\n]/g, '').toLowerCase();
+                return kws.some(k => n.includes(k.toLowerCase()));
+            });
         }
 
         function processRows(sheetName, rows) {
-            const findHeader = (kw) => rows.findIndex(r => r && r.some(c => typeof c === 'string' && kw.some(k => c.includes(k))));
-            
-            if (sheetName.includes('LSP') || findHeader(['積算日']) !== -1) {
-                const idx = findHeader(['積算日']); if (idx === -1) return;
+            const sheetKey = sheetName.toLowerCase();
+            if (sheetKey.includes('lsp')) {
+                const idx = rows.findIndex(r => r && r.some(c => String(c).includes('積算日')));
+                if (idx === -1) return;
                 const h = rows[idx];
-                const validRows = rows.slice(idx + 1).filter(r => r && r[h.indexOf('積算日')]);
-                appData.lsp = validRows.map((r, i) => {
-                    const o = { _idx: i, date: parseDate(r[h.indexOf('積算日')]), category: r[h.indexOf('カテゴリー')] || '不明', points: parseFloat(r[h.indexOf('ポイント')]) || 0, total: parseFloat(r[h.indexOf('累積ポイント')]) || 0, content: r[h.indexOf('内容')], service: r[h.indexOf('サービス')] || "" };
+                const cDate = getCol(h, ['積算日', '日付']);
+                const cPoints = getCol(h, ['ポイント', '獲得数']);
+                const cTotal = getCol(h, ['累積ポイント', '累積', '累計']);
+                const cCat = getCol(h, ['カテゴリー']);
+                const cService = getCol(h, ['サービス']);
+                const cContent = getCol(h, ['内容', '詳細']);
+                appData.lsp = rows.slice(idx + 1).filter(r => r && (r[cDate] || r[cTotal])).map((r, i) => {
+                    const o = { _idx: i, date: parseDate(r[cDate]), points: parseFloat(String(r[cPoints]||0).replace(/,/g, '')) || 0, total: parseFloat(String(r[cTotal]||0).replace(/,/g, '')) || 0, category: r[cCat] || '不明', service: r[cService] || "", content: r[cContent] || "" };
                     o.ui_category = categorizeLSP(o); return o;
-                }).filter(i => i.date && i.date.match(/^\d{4}/));
+                }).filter(i => i.date || i.total > 0);
             }
-            else if (sheetName.includes('マイル') || findHeader(['有効マイル']) !== -1) {
-                const idx = findHeader(['有効マイル']); if (idx === -1) return;
-                appData.miles = rows.slice(idx + 1).filter(r => r && r[0]).map((r, i) => {
-                    const o = { _idx: i, date: parseDate(r[0]), content: r[1], gain: parseInt(r[7]) || 0, total: parseInt(r[8]) || 0, fop: parseInt(r[9]) || 0, flight_count: parseInt(r[10]) || 0 };
-                    o.ui_category = categorizeMile(o.content); return o;
-                }).filter(i => i.date && i.date.match(/^\d{4}/));
-            }
-            else if (sheetName.includes('計画') || findHeader(['出発地', '到着地']) !== -1) {
-                const idx = findHeader(['出発地', '到着地']); if (idx === -1) return;
+            else if (sheetKey.includes('マイル')) {
+                const idx = rows.findIndex(r => r && r.some(c => String(c).includes('有効マイル') || String(c).includes('内容') || String(c).includes('日付')));
+                if (idx === -1) return;
                 const h = rows[idx];
+                const cDate = getCol(h, ['日付', '年月日', '積算日']);
+                const cGain = getCol(h, ['獲得マイル', '獲得']);
+                const cTotal = getCol(h, ['有効マイル', '残高', '合計マイル']);
+                const cFop = getCol(h, ['flyon', 'fly on', 'fop', 'ポイント']);
+                const cContent = getCol(h, ['内容', '詳細', '説明']);
                 
-                const col = (kw) => h.findIndex(c => typeof c === 'string' && kw.some(k => c.includes(k)));
-                const dIdx = col(['日付', '年月日']);
-                const aIdx = col(['運航会社', '会社']);
-                const fIdx = col(['便名']);
-                const frIdx = col(['出発地']);
-                const toIdx = col(['到着地']);
-                const dtIdx = col(['出発時刻', '出発']);
-                const atIdx = col(['到着時刻', '到着']);
-                const sIdx = col(['結果', '状態', 'ステータス']);
-                const pIdx = col(['価格', '料金', '運賃', '代金']);
+                appData.miles = rows.slice(idx + 1).filter(r => r && (r[cDate] || r[cContent])).map((r, i) => {
+                    const d = parseDate(r[cDate]) || parseDate(r[cContent]);
+                    if (!d) return null;
+                    return { 
+                        _idx: i, date: d, content: r[cContent] || "", 
+                        gain: safeParseInt(r[cGain]), total: safeParseInt(r[cTotal]), 
+                        fop: safeParseInt(r[cFop])
+                    };
+                }).filter(i => i && i.date !== "");
+            }
+            else if (sheetKey.includes('計画')) {
+                const idx = rows.findIndex(r => r && r.some(c => String(c).includes('出発地') || String(c).includes('到着地')));
+                if (idx === -1) return;
+                const h = rows[idx];
+                const col = (k) => getCol(h, k);
+                const dIdx = col(['日付', '年月日']), frIdx = col(['出発地', 'from']), sIdx = col(['結果', '状態', 'status']), pIdx = col(['価格', '料金', '運賃']);
+                const airlineIdx = col(['運航会社']), flightNoIdx = col(['便名']);
+                const toIdx = col(['到着地', 'to']), depTimeIdx = col(['出発時刻']), arrTimeIdx = col(['到着時刻']);
 
-                appData.plans = rows.slice(idx + 1).filter(r => r && r[dIdx]).map(r => ({
-                    date: parseDate(r[dIdx]), 
-                    airline: r[aIdx] || "", 
-                    flightNo: r[fIdx] || "", 
-                    from: r[frIdx] || "", 
-                    to: r[toIdx] || "", 
-                    depTime: formatSimpleTime(r[dtIdx]), 
-                    arrTime: formatSimpleTime(r[atIdx]), 
-                    status: r[sIdx] || '予定',
-                    fare: parseFloat(r[pIdx]) || 0
-                })).filter(i => i.date && i.date.match(/^\d{4}/));
+                appData.plans = rows.slice(idx + 1).filter(r => r && (r[dIdx] || r[frIdx])).map(r => {
+                    let st = String(r[sIdx] || '予定').trim();
+                    if (st === "") st = "予定";
+                    return { 
+                        date: parseDate(r[dIdx]), airline: r[airlineIdx] || "", flightNo: r[flightNoIdx] || "", 
+                        from: r[frIdx] || "", to: r[toIdx] || "", 
+                        depTime: formatSimpleTime(r[depTimeIdx]), arrTime: formatSimpleTime(r[arrTimeIdx]), 
+                        status: st, fare: parseFloat(String(r[pIdx] || 0).replace(/,/g, '')) || 0 
+                    };
+                }).filter(i => i.date !== "");
             }
         }
 
         function categorizeMile(c) {
             c = String(c || "");
-            if (c.match(/[A-Z]{2,3}\d+/) || ["羽田","那覇","福岡","石垣","宮古","成田","伊丹","HND","FUK","OKA"].some(k => c.includes(k))) return "フライト獲得";
+            if (c.match(/[A-Z]{2,3}\d+/) || ["羽田","那覇","福岡","石垣","宮古","成田","伊丹","中部","HND","FUK","OKA"].some(k => c.includes(k))) return "フライト獲得";
             if (c.includes("カード") || c.includes("ClubQ")) return "JALカード決済";
-            if (c.includes("Wellness")) return "Wellness";
-            if (c.includes("キャンペーン") || c.includes("ボーナス")) return "特典/CP";
+            if (c.includes("Wellness") || c.includes("ＷＥＬＬＮＥＳＳ")) return "Wellness";
             if (c.includes("交換") || c.includes("ポイント")) return "ポイント交換";
-            if (c.includes("Mall") || c.includes("ショッピング")) return "ショッピング";
-            if (c.includes("アンケート") || c.includes("モニター")) return "アンケート";
             return "その他獲得";
         }
 
         function categorizeLSP(item) {
-            const cat = String(item.category || "");
-            const srv = String(item.service || "");
+            const cat = String(item.category || ""), srv = String(item.service || "");
             if (cat.includes("航空")) return srv.includes("国内") ? "航空: 国内線" : "航空: 国際線";
-            if (cat.includes("ライフ")) {
-                if (srv.includes("カード")) return "ライフ: カード決済";
-                if (srv.includes("Pay") || srv.includes("モバイル")) return "ライフ: モバイル/Pay";
-                if (srv.includes("Wellness")) return "ライフ: Wellness";
-                if (srv.includes("Mall") || srv.includes("ショッピング")) return "ライフ: ショッピング";
-                return "ライフ: その他";
-            }
-            return "その他獲得";
+            if (srv.includes("カード")) return "ライフ: カード決済";
+            if (srv.includes("Pay") || srv.includes("モバイル")) return "ライフ: モバイル/Pay";
+            if (srv.includes("Wellness")) return "ライフ: Wellness";
+            return "ライフ: その他";
         }
 
         function handleFlightSort(key) {
-            if (flightSortKey === key) {
-                flightSortOrder = flightSortOrder === 'asc' ? 'desc' : 'asc';
-            } else {
-                flightSortKey = key;
-                flightSortOrder = 'asc';
-            }
+            if (flightSortKey === key) flightSortOrder = (flightSortOrder === 'asc' ? 'desc' : 'asc');
+            else { flightSortKey = key; flightSortOrder = 'desc'; }
             updateUI();
         }
 
-        function getFilteredTrendData(data, periodValue) {
-            if (periodValue === 'all') return data;
-            const now = new Date();
-            const limit = new Date();
-            if (periodValue === '1y') limit.setFullYear(now.getFullYear() - 1);
-            else if (periodValue === '6m') limit.setMonth(now.getMonth() - 6);
-            else if (periodValue === '3m') limit.setMonth(now.getMonth() - 3);
-            else if (periodValue === '1m') limit.setMonth(now.getMonth() - 1);
-            const limitStr = limit.toISOString().split('T')[0];
-            return data.filter(d => d.date >= limitStr);
+        function getFilteredTrendData(data, period) {
+            if (period === 'all') return data;
+            const now = new Date(), limit = new Date();
+            if (period === '1y') limit.setFullYear(now.getFullYear() - 1);
+            else if (period === '6m') limit.setMonth(now.getMonth() - 6);
+            else if (period === '3m') limit.setMonth(now.getMonth() - 3);
+            else if (period === '1m') limit.setMonth(now.getMonth() - 1);
+            return data.filter(d => d.date >= limit.toISOString().split('T')[0]);
         }
 
         function updateUI() {
             const todayStr = new Date().toISOString().split('T')[0];
-            const currentYear = new Date().getFullYear().toString();
-            if (appData.miles.length > 0) {
-                const s = [...appData.miles].sort((a,b) => b.date.localeCompare(a.date) || b._idx - a._idx);
-                appData.stats.miles = s[0].total; 
-                const ym = appData.miles.filter(m => m.date.startsWith(currentYear));
-                appData.stats.fop = ym.reduce((sum, m) => sum + (parseInt(m.fop)||0), 0);
-                appData.stats.yearlyFlights = ym.reduce((sum, m) => sum + (parseInt(m.flight_count)||0), 0);
-            }
-            if (appData.lsp.length > 0) { 
-                const s = [...appData.lsp].sort((a,b) => b.date.localeCompare(a.date) || b._idx - a._idx);
-                appData.stats.lsp = s[0].total; 
-            }
-            if (appData.plans.length > 0) appData.stats.plannedFlights = appData.plans.filter(p => p.status !== '済' && p.date >= todayStr).length;
+            const targetYear = "2026"; // 2026年度に固定
+            appData.yearlyMonthly.year = targetYear;
+            safeSetText('chart-main-title', `ステータス進捗 (2026年度実績)`);
 
+            // 1. 搭乗回数 (Yearly Flights): 計画シートの2026年「済」をカウント
+            const yearlyPlans = appData.plans.filter(p => p.date.startsWith(targetYear) && p.status === '済');
+            appData.stats.yearlyFlights = yearlyPlans.length;
+
+            // 2. FOP (Yearly FOP): マイル履歴の2026年FLYONポイントの単純総和
+            const yearlyMiles = appData.miles.filter(m => m.date.startsWith(targetYear));
+            appData.stats.fop = yearlyMiles.reduce((sum, m) => sum + (m.fop || 0), 0);
+
+            // 3. 年度内月次累積データの生成
+            const monthlyFop = Array(12).fill(0);
+            const monthlyFl = Array(12).fill(0);
+            let accFop = 0, accFl = 0;
+
+            for (let i = 0; i < 12; i++) {
+                const mStr = `${targetYear}-${(i+1).toString().padStart(2, '0')}`;
+                
+                // その月の実績を算出
+                const flInMonth = yearlyPlans.filter(p => p.date.startsWith(mStr)).length;
+                const fopInMonth = yearlyMiles.filter(m => m.date.startsWith(mStr)).reduce((sum, m) => sum + (m.fop || 0), 0);
+                
+                accFl += flInMonth; accFop += fopInMonth;
+                monthlyFl[i] = accFl; monthlyFop[i] = accFop;
+            }
+
+            appData.yearlyMonthly.fop = monthlyFop;
+            appData.yearlyMonthly.fl = monthlyFl;
+
+            // 他の基本ステータス
+            const latestMiles = [...appData.miles].sort((a,b) => b.date.localeCompare(a.date) || b._idx - a._idx);
+            appData.stats.miles = latestMiles.length > 0 ? latestMiles[0].total : 0;
+            
+            if (appData.lsp.length > 0) {
+                const sl = [...appData.lsp].sort((a,b) => b.date.localeCompare(a.date) || b._idx - a._idx);
+                appData.stats.lsp = sl[0].total;
+            }
+            appData.stats.plannedFlights = appData.plans.filter(p => p.status !== '済' && p.date >= todayStr).length;
+
+            // 表示更新
             safeSetText('stat-miles', appData.stats.miles.toLocaleString());
             safeSetText('stat-lsp', appData.stats.lsp.toLocaleString());
             safeSetText('stat-fop', appData.stats.fop.toLocaleString());
-            safeSetText('stat-yearly-flights', appData.stats.yearlyFlights.toLocaleString() + " (" + appData.stats.plannedFlights + ")");
+            safeSetText('stat-yearly-flights', appData.stats.yearlyFlights.toLocaleString());
 
             if (currentTab === 'dashboard') updateDashboard();
             else {
-                const startInput = document.getElementById('chartFilterStart');
-                const endInput = document.getElementById('chartFilterEnd');
-                const cS = startInput ? startInput.value : '';
-                const cE = endInput ? endInput.value : '';
-                
-                const catSel = document.getElementById('categorySelector');
-                const catSelValue = (catSel && catSel.value) ? catSel.value : 'all';
-
-                const listF = (list, start, end) => {
-                    if (isAllDisplayMode) return list;
-                    return list.filter(i => (!start || i.date >= start) && (!end || i.date <= end));
-                };
-
-                const filteredByDate = listF(
-                    currentTab === 'miles' ? appData.miles : 
-                    (currentTab === 'lsp' ? appData.lsp : appData.plans), 
-                    cS, cE
-                );
-
-                if (currentTab === 'miles') updateMilesTab(filteredByDate, catSelValue);
-                else if (currentTab === 'lsp') updateLSPTab(filteredByDate, catSelValue);
-                else if (currentTab === 'flights') updateFlightsTab(filteredByDate, catSelValue);
+                const start = document.getElementById('chartFilterStart')?.value || '', end = document.getElementById('chartFilterEnd')?.value || '';
+                const cat = document.getElementById('categorySelector')?.value || 'all';
+                const list = currentTab === 'miles' ? appData.miles : (currentTab === 'lsp' ? appData.lsp : appData.plans);
+                let filtered = (currentTab === 'flights') ? list : (isAllDisplayMode ? list : list.filter(i => (!start || i.date >= start) && (!end || i.date <= end)));
+                if (currentTab === 'miles') updateMilesTab(filtered, cat);
+                else if (currentTab === 'lsp') updateLSPTab(filtered, cat);
+                else if (currentTab === 'flights') updateFlightsTab(filtered, cat);
             }
-        }
-
-        function renderCategorySummary(groups, unit) {
-            const area = document.getElementById('categorySummaryArea');
-            const body = document.getElementById('categorySummaryBody');
-            if (!area || !body) return;
-            area.classList.remove('hidden');
-            const sorted = Object.entries(groups).sort((a,b) => b[1] - a[1]);
-            const total = sorted.reduce((s, x) => s + x[1], 0);
-            body.innerHTML = sorted.map(([cat, val]) => `
-                <tr class="hover:bg-slate-50/50">
-                    <td class="py-2 px-3 text-slate-600 font-bold text-[10px] md:text-xs">${cat}</td>
-                    <td class="py-2 px-3 text-right font-black text-slate-800 text-[10px] md:text-xs">${val.toLocaleString()} <span class="text-[8px] font-bold text-slate-400">${unit}</span></td>
-                    <td class="py-2 px-3 text-right text-[9px] font-bold text-slate-400 w-12">${total > 0 ? (val/total*100).toFixed(1) : 0}%</td>
-                </tr>
-            `).join('');
-        }
-
-        function renderMonthlySummary(list, key, unit) {
-            const area = document.getElementById('monthlySummaryArea');
-            const head = document.getElementById('monthlySummaryHead');
-            const body = document.getElementById('monthlySummaryBody');
-            if (!area || !head || !body) return;
-            area.classList.remove('hidden');
-
-            const isMobile = window.innerWidth < 768;
-            const displayCount = isMobile ? 3 : 6;
-            const sortedList = [...list].sort((a,b) => b.date.localeCompare(a.date));
-            if (sortedList.length === 0) { area.classList.add('hidden'); return; }
-            
-            const latestDate = new Date(sortedList[0].date);
-            const months = [];
-            for (let i = 0; i < displayCount; i++) {
-                const d = new Date(latestDate.getFullYear(), latestDate.getMonth() - i, 1);
-                months.push(d.toISOString().substring(0, 7));
-            }
-
-            const categories = [...new Set(list.map(d => d.ui_category))];
-            const catStats = categories.map(cat => {
-                const total = list.filter(d => d.ui_category === cat).reduce((s, d) => s + (d[key] > 0 ? d[key] : 0), 0);
-                return { name: cat, total };
-            }).sort((a, b) => b.total - a.total);
-
-            let headHtml = '<tr><th class="py-2 px-3 text-[9px] font-black text-slate-400 uppercase text-left">カテゴリ</th>';
-            months.forEach(m => { headHtml += '<th class="py-2 px-3 text-[9px] font-black text-slate-400 uppercase text-right">' + m.split('-')[1] + '月</th>'; });
-            headHtml += '<th class="py-2 px-3 text-[9px] font-black text-slate-400 uppercase text-right bg-slate-100/50">全体合計</th></tr>';
-            head.innerHTML = headHtml;
-
-            let bodyHtml = "";
-            catStats.forEach(cat => {
-                bodyHtml += '<tr><td class="py-2 px-3 text-slate-600 font-bold text-[10px] md:text-xs whitespace-nowrap">' + cat.name + '</td>';
-                months.forEach(m => {
-                    const val = list.filter(d => d.date.startsWith(m) && d.ui_category === cat.name).reduce((s, d) => s + (d[key] > 0 ? d[key] : 0), 0);
-                    bodyHtml += '<td class="py-2 px-3 text-right text-slate-800 text-[10px] md:text-xs ' + (val === 0 ? 'text-slate-300' : 'font-bold') + '">' + (val > 0 ? val.toLocaleString() : '-') + '</td>';
-                });
-                bodyHtml += '<td class="py-2 px-3 text-right font-black text-slate-800 text-[10px] md:text-xs bg-slate-100/30">' + cat.total.toLocaleString() + '</td></tr>';
-            });
-            body.innerHTML = bodyHtml;
         }
 
         function updateDashboard() {
-            const curMonth = new Date().getMonth();
-            const ym = appData.miles.filter(m => m.date.startsWith(new Date().getFullYear()));
-            const mFop = Array(12).fill(0), mFl = Array(12).fill(0);
-            ym.forEach(m => { const idx = parseInt(m.date.split('-')[1]) - 1; if(idx>=0 && idx<12) { mFop[idx] += (parseInt(m.fop)||0); mFl[idx] += (parseInt(m.flight_count)||0); }});
-            let rF = 0, rL = 0;
-            const cF = mFop.map((v, i) => i <= curMonth ? (rF += v) : null);
-            const cL = mFl.map((v, i) => i <= curMonth ? (rL += v) : null);
-            try { renderMixedChart('annualTrendChart', Array.from({length:12}, (_,i)=> (i+1) + "月"), cF, cL); } catch(e){}
-            try { renderPieChart("milePieChart", appData.miles.reduce((g, d) => { g[d.ui_category] = (g[d.ui_category]||0) + (d.gain > 0 ? d.gain : 0); return g; }, {})); } catch(e){}
-            try { renderPieChart("lspPieChart", appData.lsp.reduce((g, d) => { g[d.ui_category] = (g[d.ui_category]||0) + d.points; return g; }, {})); } catch(e){}
+            renderMixedChart('annualTrendChart', Array.from({length:12}, (_,i)=>(i+1)+"月"), appData.yearlyMonthly.fop, appData.yearlyMonthly.fl);
+            renderPieChart("milePieChart", appData.miles.reduce((g, d) => { if(d.gain>0) g[categorizeMile(d.content)] = (g[categorizeMile(d.content)]||0)+d.gain; return g; }, {}));
+            renderPieChart("lspPieChart", appData.lsp.reduce((g, d) => { g[d.ui_category] = (g[d.ui_category]||0)+d.points; return g; }, {}));
         }
 
-        function updateMilesTab(chartData, catFilter) {
-            safeSetHTML('detailLineTitle', '月別マイル獲得実績 ' + getRangeText());
-            document.getElementById('rankingSection').classList.add('hidden');
-            
-            // 修正：獲得マイルの合計（gainの合計）と整合させるため、負の値（利用分）も含めて集計
-            const allTimeGroups = appData.miles.reduce((g, d) => { 
-                g[d.ui_category] = (g[d.ui_category]||0) + d.gain; 
-                return g; 
-            }, {});
-
-            // 円グラフは視覚化のため、純増がプラスのカテゴリのみ表示（Chart.jsの負数制限対策）
-            const chartGroups = Object.fromEntries(
-                Object.entries(allTimeGroups).filter(([_, v]) => v > 0)
-            );
-            try { renderPieChart('detailPieChart', chartGroups); } catch(e){}
-            
-            renderCategorySummary(allTimeGroups, 'mile');
-            renderMonthlySummary(chartData, 'gain', 'mile');
-            try { renderStackedBar('detailLineChart', chartData, 'gain'); } catch(e){}
-            
-            const periodVal = document.getElementById('mileTrendPeriod').value;
-            const trendData = getFilteredTrendData(appData.miles, periodVal);
-            try { renderMixedTrendChart('mileMixedChart', trendData, 'gain', 'total', '獲得', '残高', '#1e293b', '#E10009'); } catch(e){}
-            
+        function updateMilesTab(data, catFilter) {
+            safeSetHTML('detailLineTitle', '月別マイル実績');
+            const allTime = appData.miles.reduce((g, d) => { const c = categorizeMile(d.content); g[c] = (g[c]||0)+d.gain; return g; }, {});
+            renderPieChart('detailPieChart', Object.fromEntries(Object.entries(allTime).filter(([_,v])=>v>0)));
+            renderStackedBar('detailLineChart', data, 'gain');
+            renderMixedTrendChart('mileMixedChart', getFilteredTrendData(appData.miles, document.getElementById('mileTrendPeriod').value), 'gain', 'total', '獲得', '残高', '#1e293b', '#E10009');
             const sel = document.getElementById('categorySelector');
-            if (sel) {
-                const cats = ['all', ...new Set(appData.miles.map(m => m.ui_category))].sort();
-                sel.innerHTML = cats.map(c => `<option value="${c}" ${c === catFilter ? 'selected' : ''}>${c === 'all' ? '全ての種類' : c}</option>`).join('');
-            }
-            
-            const filtered = chartData.filter(m => !catFilter || catFilter === 'all' || m.ui_category === catFilter).sort((a, b) => b.date.localeCompare(a.date) || b._idx - a._idx);
-            
-            // 修正：表示合計値を gain の総和（Net）として再定義
-            const totalNet = (!catFilter || catFilter === 'all')
-                ? appData.miles.reduce((s, m) => s + m.gain, 0)
-                : (allTimeGroups[catFilter] || 0);
-                
-            safeSetText('totalEarnedValue', '合計: ' + totalNet.toLocaleString() + " mile");
-            
-            safeSetHTML('table-head', '<tr><th class="p-3">日付</th><th class="p-3">カテゴリ</th><th class="p-3">内容</th><th class="p-3 text-right">獲得</th><th class="p-3 text-right">残高</th></tr>');
-            safeSetHTML('table-body', filtered.map(m => `<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 whitespace-nowrap text-xs font-bold">${m.date}</td><td class="p-3 text-[10px] font-bold">${m.ui_category}</td><td class="p-3 font-bold text-slate-700 text-xs">${m.content}</td><td class="p-3 text-right ${m.gain < 0 ? 'text-slate-400' : 'text-red-500'} font-black text-xs">${(m.gain > 0 ? '+' : '')}${m.gain.toLocaleString()}</td><td class="p-3 text-right font-bold text-slate-800 text-xs">${m.total.toLocaleString()}</td></tr>`).join(''));
-            
-            safeSetHTML('mobile-details-list', filtered.map(m => `
-                <div class="details-card">
-                    <div class="flex justify-between items-start">
-                        <span class="text-[10px] font-black text-slate-400">${m.date}</span>
-                        <span class="text-[9px] px-2 py-0.5 rounded-full bg-slate-100 font-bold">${m.ui_category}</span>
-                    </div>
-                    <p class="text-xs font-bold text-slate-800">${m.content}</p>
-                    <div class="flex justify-between items-end pt-2 border-t border-slate-50">
-                        <div><p class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">残高</p><p class="text-xs font-bold">${m.total.toLocaleString()}</p></div>
-                        <p class="text-sm font-black ${m.gain < 0 ? 'text-slate-400' : 'text-red-500'}">${(m.gain > 0 ? '+' : '')}${m.gain.toLocaleString()} <span class="text-[9px]">mile</span></p>
-                    </div>
-                </div>
-            `).join('') || '<p class="text-center py-8 text-slate-400 text-xs italic">該当データはありません</p>');
+            if (sel) { const cats = ['all', ...new Set(appData.miles.map(m => categorizeMile(m.content)))].sort(); sel.innerHTML = cats.map(c => `<option value="${c}" ${c === catFilter ? 'selected' : ''}>${c === 'all' ? '全ての種類' : c}</option>`).join(''); }
+            let filtered = data.filter(m => catFilter === 'all' || categorizeMile(m.content) === catFilter);
+            filtered.sort((a,b) => flightSortOrder === 'asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
+            safeSetText('totalEarnedValue', '表示期間純増減: ' + filtered.reduce((s,m)=>s+m.gain,0).toLocaleString() + " mile");
+            safeSetHTML('table-head', `<tr><th class="p-3">日付</th><th class="p-3">カテゴリ</th><th class="p-3">内容</th><th class="p-3 text-right">獲得</th><th class="p-3 text-right">残高</th></tr>`);
+            safeSetHTML('table-body', filtered.map(m => `<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 font-bold text-xs">${m.date}</td><td class="p-3 text-[10px] font-bold text-slate-500">${categorizeMile(m.content)}</td><td class="p-3 font-bold text-xs text-slate-700">${m.content}</td><td class="p-3 text-right ${m.gain<0?'text-slate-400':'text-red-500'} font-black text-xs">${m.gain.toLocaleString()}</td><td class="p-3 text-right font-bold text-xs text-slate-800">${m.total.toLocaleString()}</td></tr>`).join(''));
+            safeSetHTML('mobile-details-list', filtered.map(m => `<div class="details-card"><div class="flex justify-between items-start"><span class="text-[10px] font-black">${m.date}</span><span class="text-[9px] px-2 py-0.5 rounded bg-slate-100 font-bold">${categorizeMile(m.content)}</span></div><p class="text-xs font-bold">${m.content}</p><div class="flex justify-between pt-2 border-t"><p class="text-xs font-bold text-slate-800">${m.total.toLocaleString()}</p><p class="text-sm font-black ${m.gain<0?'text-slate-400':'text-red-500'}">${m.gain.toLocaleString()} mile</p></div></div>`).join(''));
         }
 
-        function updateLSPTab(chartData, catFilter) {
-            safeSetHTML('detailLineTitle', '月別LSP獲得実績 ' + getRangeText());
-            document.getElementById('rankingSection').classList.add('hidden');
-            
-            // 内訳集計
-            const allTimeGroups = appData.lsp.reduce((g, d) => { 
-                g[d.ui_category] = (g[d.ui_category]||0) + d.points; 
-                return g; 
-            }, {});
-
-            // 修正：定義を「最新の累積ポイント」と整合させるため、差分を調整カテゴリとして含める
-            const currentSum = Object.values(allTimeGroups).reduce((s, v) => s + v, 0);
-            const latestBalance = appData.stats.lsp;
-            if (currentSum < latestBalance) {
-                const label = "初期残高・その他";
-                allTimeGroups[label] = (allTimeGroups[label] || 0) + (latestBalance - currentSum);
-            }
-
-            try { renderPieChart('detailPieChart', allTimeGroups); } catch(e){}
-            renderCategorySummary(allTimeGroups, 'LSP');
-            
-            renderMonthlySummary(chartData, 'points', 'LSP');
-            try { renderStackedBar('detailLineChart', chartData, 'points'); } catch(e){}
-            
-            const periodVal = document.getElementById('lspTrendPeriod').value;
-            const trendData = getFilteredTrendData(appData.lsp, periodVal);
-            try { renderMixedTrendChart('lspMixedChart', trendData, 'points', 'total', '獲得', '累計', '#1e293b', '#3b82f6'); } catch(e){}
-            
+        function updateLSPTab(data, catFilter) {
+            safeSetHTML('detailLineTitle', '月別LSP実績');
+            const allTime = appData.lsp.reduce((g, d) => { g[d.ui_category] = (g[d.ui_category]||0)+d.points; return g; }, {});
+            renderPieChart('detailPieChart', allTime);
+            renderStackedBar('detailLineChart', data, 'points');
+            renderMixedTrendChart('lspMixedChart', getFilteredTrendData(appData.lsp, document.getElementById('lspTrendPeriod').value), 'points', 'total', '獲得', '累計', '#1e293b', '#3b82f6');
             const sel = document.getElementById('categorySelector');
-            if (sel) {
-                const cats = ['all', ...new Set(Object.keys(allTimeGroups))].sort();
-                sel.innerHTML = cats.map(c => `<option value="${c}" ${c === catFilter ? 'selected' : ''}>${c === 'all' ? '全ての種類' : c}</option>`).join('');
-            }
-            
-            const filtered = chartData.filter(l => !catFilter || catFilter === 'all' || l.ui_category === catFilter).sort((a, b) => b.date.localeCompare(a.date) || b._idx - a._idx);
-            
-            // 修正：カテゴリ選択時も「定義ベースの総和」と整合する値を出力
-            const displayTotal = (!catFilter || catFilter === 'all')
-                ? latestBalance
-                : (allTimeGroups[catFilter] || 0);
-
-            safeSetText('totalEarnedValue', '合計: ' + displayTotal.toLocaleString() + " LSP");
-            
-            safeSetHTML('table-head', '<tr><th class="p-3">日付</th><th class="p-3">カテゴリ</th><th class="p-3">内容</th><th class="p-3 text-right">獲得</th><th class="p-3 text-right">累計</th></tr>');
-            safeSetHTML('table-body', filtered.map(l => `<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 whitespace-nowrap text-xs font-bold">${l.date}</td><td class="p-3 text-[10px] font-bold">${l.ui_category}</td><td class="p-3 font-bold text-slate-700 text-xs">${l.content}</td><td class="p-3 text-right text-blue-500 font-black text-xs">+${l.points.toLocaleString()}</td><td class="p-3 text-right font-bold text-slate-800 text-xs">${l.total.toLocaleString()}</td></tr>`).join(''));
-            
-            safeSetHTML('mobile-details-list', filtered.map(l => `
-                <div class="details-card">
-                    <div class="flex justify-between items-start">
-                        <span class="text-[10px] font-black text-slate-400">${l.date}</span>
-                        <span class="text-[9px] px-2 py-0.5 rounded-full bg-slate-100 font-bold">${l.ui_category}</span>
-                    </div>
-                    <p class="text-xs font-bold text-slate-800">${l.content}</p>
-                    <div class="flex justify-between items-end pt-2 border-t border-slate-50">
-                        <div><p class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">累計</p><p class="text-xs font-bold">${l.total.toLocaleString()}</p></div>
-                        <p class="text-sm font-black text-blue-500">+${l.points.toLocaleString()} <span class="text-[9px]">LSP</span></p>
-                    </div>
-                </div>
-            `).join('') || '<p class="text-center py-8 text-slate-400 text-xs italic">該当データはありません</p>');
+            if (sel) { const cats = ['all', ...new Set(appData.lsp.map(m => m.ui_category))].sort(); sel.innerHTML = cats.map(c => `<option value="${c}" ${c === catFilter ? 'selected' : ''}>${c === 'all' ? '全ての種類' : c}</option>`).join(''); }
+            let filtered = data.filter(l => catFilter === 'all' || l.ui_category === catFilter);
+            filtered.sort((a,b) => flightSortOrder === 'asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
+            safeSetText('totalEarnedValue', '累計: ' + appData.stats.lsp.toLocaleString() + " LSP");
+            safeSetHTML('table-head', `<tr><th class="p-3">日付</th><th class="p-3">カテゴリ</th><th class="p-3">内容</th><th class="p-3 text-right">獲得</th><th class="p-3 text-right">累計</th></tr>`);
+            safeSetHTML('table-body', filtered.map(l => `<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 font-bold text-xs">${l.date}</td><td class="p-3 text-[10px] font-bold text-slate-500">${l.ui_category}</td><td class="p-3 font-bold text-xs text-slate-700">${l.content}</td><td class="p-3 text-right text-blue-500 font-black text-xs">+${l.points.toLocaleString()}</td><td class="p-3 text-right font-bold text-xs text-slate-800">${l.total.toLocaleString()}</td></tr>`).join(''));
+            safeSetHTML('mobile-details-list', filtered.map(l => `<div class="details-card"><div class="flex justify-between items-start"><span class="text-[10px] font-black">${l.date}</span><span class="text-[9px] px-2 py-0.5 rounded bg-slate-100 font-bold">${l.ui_category}</span></div><p class="text-xs font-bold">${l.content}</p><div class="flex justify-between pt-2 border-t"><p class="text-xs font-bold text-slate-800">${l.total.toLocaleString()}</p><p class="text-sm font-black text-blue-500">+${l.points.toLocaleString()} LSP</p></div></div>`).join(''));
         }
 
-        function updateFlightsTab(chartData, statusFilter) {
-            safeSetHTML('detailLineTitle', '月別搭乗実績 ' + getRangeText());
-            document.getElementById('rankingSection')?.classList.remove('hidden');
-            document.getElementById('categorySummaryArea')?.classList.add('hidden');
-            document.getElementById('monthlySummaryArea')?.classList.add('hidden');
-            
-            try { renderFlightStackedBar('detailLineChart', chartData); } catch(e){}
-            
+        function updateFlightsTab(data, statusFilter) {
+            safeSetHTML('detailLineTitle', '直近の搭乗計画');
+            renderFlightStackedBar('detailLineChart', appData.plans);
             const todayStr = new Date().toISOString().split('T')[0];
-            const upcoming = appData.plans.filter(p => p.status !== '済' && p.date >= todayStr).sort((a,b)=>a.date.localeCompare(b.date));
-            safeSetText('stat-planned-flights', upcoming.length);
-            safeSetHTML('flightCards', upcoming.map(p => `<div class="bg-red-50 border border-red-100 p-3 rounded-xl min-w-[180px]"><p class="text-[10px] font-bold text-red-400">${p.date} ${getDayOfWeek(p.date)}</p><p class="text-xs font-black text-slate-800">${p.from} → ${p.to}</p></div>`).join('') || '<p class="text-xs text-slate-400 italic">予定なし</p>');
+            const allPlans = appData.plans;
+            const upcoming = allPlans.filter(p => p.status !== '済' && p.date >= todayStr).sort((a,b)=>a.date.localeCompare(b.date));
+            safeSetText('stat-planned-flights-detail', upcoming.length);
+            safeSetHTML('flightCards', upcoming.slice(0, 10).map(p => `<div class="bg-red-50 border border-red-100 p-3 rounded-xl min-w-[180px] shadow-sm"><p class="text-[10px] font-bold text-red-500">${p.date} ${getDayOfWeek(p.date)}</p><p class="text-sm font-black text-slate-800 leading-tight">${p.from} → ${p.to}</p><p class="text-[9px] text-slate-400 font-bold">${p.airline}${p.flightNo} ${p.depTime}</p></div>`).join('') || '<p class="text-xs text-slate-400 italic">直近の搭乗予定はありません</p>');
+            const routeStats = {}; allPlans.forEach(p => { if(p.status === '済'){ const r = `${p.from} → ${p.to}`; routeStats[r] = (routeStats[r] || 0) + 1; }});
+            renderRankingBarChartCombined('rankingChartCombined', Object.entries(routeStats).sort((a,b)=>b[1]-a[1]));
             
-            const routeStats = {}; 
-            appData.plans.forEach(p => { 
-                if(p.status === '済'){ 
-                    const route = [p.from, p.to].sort().join(' ↔ '); 
-                    routeStats[route] = (routeStats[route] || 0) + 1;
-                }
-            });
-            try { 
-                const sortedRoutes = Object.entries(routeStats).sort((a,b) => b[1] - a[1]);
-                renderRankingBarChartCombined('rankingChartCombined', sortedRoutes);
-            } catch(e){}
-
-            const sel = document.getElementById('categorySelector');
-            if (sel) {
-                const options = [{ val: 'all', label: 'すべての状態' }, { val: '済', label: '搭乗済みのみ' }, { val: '予定', label: '予定のみ' }];
-                sel.innerHTML = options.map(o => `<option value="${o.val}" ${o.val === statusFilter ? 'selected' : ''}>${o.label}</option>`).join('');
-            }
-
-            const monthSel = document.getElementById('monthSelector');
-            const monthFilter = (monthSel && monthSel.value) ? monthSel.value : 'all';
+            const monthFilter = document.getElementById('monthSelector')?.value || 'all';
+            let filtered = data.filter(p => (statusFilter === 'all' || p.status === statusFilter) && (monthFilter === 'all' || p.date.startsWith(monthFilter)));
+            filtered.sort((a,b) => flightSortOrder === 'asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
             
-            let filteredTable = chartData.filter(p => !statusFilter || statusFilter === 'all' || p.status === statusFilter);
-            if (monthFilter !== 'all') {
-                filteredTable = filteredTable.filter(p => p.date.startsWith(monthFilter));
-            }
-            
-            filteredTable = filteredTable.filter(p => p.depTime !== "" && p.arrTime !== "");
-            
-            filteredTable.sort((a, b) => {
-                let vA = a[flightSortKey], vB = b[flightSortKey];
-                if (typeof vA === 'string') return flightSortOrder === 'asc' ? vA.localeCompare(vB) : vB.localeCompare(vA);
-                return flightSortOrder === 'asc' ? vA - vB : vB - vA;
-            });
-
             const getSortIcon = (key) => flightSortKey === key ? (flightSortOrder === 'asc' ? ' <i class="fa-solid fa-sort-up"></i>' : ' <i class="fa-solid fa-sort-down"></i>') : ' <i class="fa-solid fa-sort text-slate-200"></i>';
-
-            safeSetHTML('table-head', `<tr class="bg-slate-50 text-[10px] uppercase font-black text-slate-400"><th class="p-3 sort-header" onclick="handleFlightSort('date')">日付${getSortIcon('date')}</th><th class="p-3 sort-header" onclick="handleFlightSort('flightNo')">便名${getSortIcon('flightNo')}</th><th class="p-3 sort-header" onclick="handleFlightSort('from')">出発地${getSortIcon('from')}</th><th class="p-3 sort-header" onclick="handleFlightSort('depTime')">時間${getSortIcon('depTime')}</th><th class="p-3 sort-header" onclick="handleFlightSort('to')">到着地${getSortIcon('to')}</th><th class="p-3 sort-header" onclick="handleFlightSort('arrTime')">時間${getSortIcon('arrTime')}</th><th class="p-3 sort-header text-center" onclick="handleFlightSort('status')">状態${getSortIcon('status')}</th><th class="p-3 sort-header text-right" onclick="handleFlightSort('fare')">料金${getSortIcon('fare')}</th></tr>`);
-            
-            safeSetHTML('table-body', filteredTable.map(p => `
-                <tr class="border-b hover:bg-slate-50 transition-colors">
-                    <td class="p-3 whitespace-nowrap font-bold text-slate-800 text-xs">${p.date}</td>
-                    <td class="p-3 font-mono text-[11px] text-slate-500">${(p.airline || '')}${(p.flightNo || '')}</td>
-                    <td class="p-3 font-black text-slate-700 text-xs">${p.from}</td>
-                    <td class="p-3 text-slate-400 font-bold text-[10px]">${p.depTime}</td>
-                    <td class="p-3 font-black text-slate-700 text-xs">${p.to}</td>
-                    <td class="p-3 text-slate-400 font-bold text-[10px]">${p.arrTime}</td>
-                    <td class="p-3 text-center"><span class="inline-block px-2 py-0.5 rounded-full text-[9px] font-black shadow-sm ${p.status === '済' ? 'bg-slate-200 text-slate-500' : 'bg-red-600 text-white'}">${p.status === '済' ? '済' : '予定'}</span></td>
-                    <td class="p-3 text-right font-black text-slate-800 text-xs">${p.fare > 0 ? '¥' + p.fare.toLocaleString() : ''}</td>
-                </tr>
-            `).join('') || '<tr><td colspan="8" class="p-8 text-center text-slate-400 italic">該当データはありません</td></tr>');
-            
-            safeSetHTML('mobile-details-list', filteredTable.map(p => `
-                <div class="details-card border-l-4 ${p.status === '済' ? 'border-l-slate-300' : 'border-l-red-600'}">
-                    <div class="flex justify-between items-center">
-                        <span class="text-[10px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded">${p.date} ${getDayOfWeek(p.date)}</span>
-                        <span class="px-2 py-0.5 rounded text-[10px] font-black ${p.status === '済' ? 'text-slate-400' : 'bg-red-600 text-white'}">${p.status === '済' ? '搭乗済' : '搭乗予定'}</span>
-                    </div>
-                    
-                    <div class="flex items-center justify-between gap-2 py-1">
-                        <div class="flex-1">
-                            <p class="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">From</p>
-                            <p class="text-sm font-black text-slate-800 leading-tight">${p.from}</p>
-                            <p class="text-[11px] font-bold text-slate-600">${p.depTime}</p>
-                        </div>
-                        <div class="flex flex-col items-center px-2">
-                            <i class="fa-solid fa-plane text-slate-200 text-sm"></i>
-                            <div class="h-px w-8 bg-slate-100 mt-1"></div>
-                        </div>
-                        <div class="flex-1 text-right">
-                            <p class="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">To</p>
-                            <p class="text-sm font-black text-slate-800 leading-tight">${p.to}</p>
-                            <p class="text-[11px] font-bold text-slate-600">${p.arrTime}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex justify-between items-center pt-2 border-t border-slate-50">
-                        <div class="flex items-center gap-2">
-                            <span class="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-tighter">${p.airline || ''}${p.flightNo || ''}</span>
-                        </div>
-                        <span class="text-sm font-black text-slate-900">${p.fare > 0 ? '¥' + p.fare.toLocaleString() : '-'}</span>
-                    </div>
-                </div>
-            `).join('') || '<p class="text-center py-8 text-slate-400 text-xs italic">該当データはありません</p>');
+            safeSetHTML('table-head', `<tr><th class="p-3 sort-header" onclick="handleFlightSort('date')">日付${getSortIcon('date')}</th><th class="p-3">便名</th><th class="p-3">出発地</th><th class="p-3">到着地</th><th class="p-3 text-center">状態</th><th class="p-3 text-right">料金</th></tr>`);
+            safeSetHTML('table-body', filtered.map(p => `<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 font-bold text-xs text-slate-800">${p.date}</td><td class="p-3 font-mono text-[10px] text-slate-500">${p.airline}${p.flightNo}</td><td class="p-3 font-bold text-xs text-slate-700">${p.from}</td><td class="p-3 font-bold text-xs text-slate-700">${p.to}</td><td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[9px] font-black ${p.status==='済'?'bg-slate-200 text-slate-500':'bg-red-600 text-white shadow-sm'}">${p.status}</span></td><td class="p-3 text-right font-black text-xs text-slate-900">${p.fare>0?'¥'+p.fare.toLocaleString():''}</td></tr>`).join('') || '<tr><td colspan="6" class="p-8 text-center text-slate-400 italic">該当データはありません</td></tr>');
+            safeSetHTML('mobile-details-list', filtered.map(p => `<div class="details-card border-l-4 ${p.status==='済'?'border-l-slate-300':'border-l-red-600'}"><div class="flex justify-between items-center"><span class="text-[10px] font-black text-slate-500">${p.date}</span><span class="text-[10px] font-black ${p.status==='済'?'text-slate-400':'text-red-600'}">${p.status}</span></div><p class="text-sm font-black text-slate-800">${p.from} → ${p.to}</p><div class=\"flex justify-between border-t border-slate-50 pt-1 mt-1\"><span class=\"text-[10px] text-slate-400 font-bold uppercase tracking-tighter\">${p.airline}${p.flightNo} ${p.depTime}</span><span class=\"text-sm font-black text-slate-900\">${p.fare>0?'¥'+p.fare.toLocaleString():'-'}</span></div></div>`).join(''));
         }
 
         // --- Charts ---
         function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
-        const chartOptions = (legendPos = 'right') => ({ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: legendPos, labels: { font: { size: 9, weight: 'bold' }, boxWidth: 10 } } } });
+        const chartOptions = (lp = 'right') => ({ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: lp, labels: { font: { size: 9, weight: 'bold' }, boxWidth: 10 } } } });
 
         function renderMixedChart(id, labels, fop, fl) {
             const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
-            const isMob = window.innerWidth < 768;
-            charts[id] = new Chart(ctx, { data: { labels: labels, datasets: [{ type: 'line', label: '累計 FOP', data: fop, borderColor: '#E10009', borderWidth: 3, fill: true, backgroundColor: 'rgba(225,0,9,0.05)', tension:0.3, yAxisID: 'y' }, { type: 'bar', label: '累計 搭乗', data: fl, backgroundColor: '#1e293b', borderRadius: 4, yAxisID: 'y1' }]}, options: { ...chartOptions(isMob?'bottom':'right'), scales: { y: { beginAtZero: true }, y1: { position: 'right', beginAtZero: true, grid: { display: false } } } } });
+            charts[id] = new Chart(ctx, { 
+                data: { 
+                    labels, 
+                    datasets: [
+                        { type: 'line', label: '累計FOP (2026年度)', data: fop, borderColor: '#E10009', borderWidth: 2, fill: true, backgroundColor: 'rgba(225,0,9,0.05)', tension: 0.1, yAxisID: 'y' }, 
+                        { type: 'bar', label: '累計搭乗 (2026年度)', data: fl, backgroundColor: '#1e293b', borderRadius: 4, yAxisID: 'y1' }
+                    ] 
+                }, 
+                options: { 
+                    ...chartOptions(window.innerWidth < 768?'bottom':'right'), 
+                    scales: { 
+                        y: { beginAtZero: true, title: { display: true, text: 'FOP' } }, 
+                        y1: { position: 'right', beginAtZero: true, grid: { display: false }, title: { display: true, text: '回数' } } 
+                    } 
+                } 
+            });
         }
 
         function renderPieChart(id, groups) {
             const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
-            const labels = Object.keys(groups).sort((a,b) => groups[b] - groups[a]);
-            const isMob = window.innerWidth < 768;
-            charts[id] = new Chart(ctx, { type: 'doughnut', data: { labels: labels, datasets: [{ data: labels.map(l => groups[l]), backgroundColor: ['#E10009', '#1e293b', '#10b981', '#3b82f6', '#f59e0b', '#db2777', '#8b5cf6', '#94a3b8'], borderWidth: 0 }] }, options: chartOptions(isMob?'bottom':'right') });
+            const labels = Object.keys(groups).sort((a,b)=>groups[b]-groups[a]);
+            charts[id] = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data: labels.map(l=>groups[l]), backgroundColor: ['#E10009', '#1e293b', '#10b981', '#3b82f6', '#f59e0b', '#db2777', '#8b5cf6', '#94a3b8'], borderWidth: 0 }] }, options: chartOptions(window.innerWidth < 768?'bottom':'right') });
         }
 
         function renderStackedBar(id, list, key) {
             const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
             const months = [...new Set(list.map(d => d.date.substring(0, 7)))].sort();
-            const categories = [...new Set(list.map(d => d.ui_category))];
-            const sortedCats = categories.map(cat => {
-                const total = list.filter(d => d.ui_category === cat).reduce((s, d) => s + (d[key] > 0 ? d[key] : 0), 0);
-                return { name: cat, total: total };
-            }).sort((a, b) => b.total - a.total).map(c => c.name);
-
+            const cats = [...new Set(list.map(d => categorizeMile(d.content)))];
+            const sortedCats = cats.map(c => ({ name: c, total: list.filter(d=>categorizeMile(d.content)===c).reduce((s,d)=>s+Math.abs(d[key]),0) })).sort((a,b)=>b.total-a.total).map(c=>c.name);
             const colors = ['#E10009', '#1e293b', '#10b981', '#3b82f6', '#f59e0b', '#db2777', '#8b5cf6', '#94a3b8'];
-            charts[id] = new Chart(ctx, { type: 'bar', data: { labels: months, datasets: sortedCats.map((c, i) => ({ label: c, backgroundColor: colors[i % colors.length], data: months.map(m => list.filter(d => d.date.substring(0, 7) === m && d.ui_category === c).reduce((s, d) => s + (d[key] > 0 ? d[key] : 0), 0)), borderRadius: 3 })) }, options: { ...chartOptions(window.innerWidth < 768?'bottom':'right'), scales: { x: { stacked: true }, y: { stacked: true } } } });
+            charts[id] = new Chart(ctx, { type: 'bar', data: { labels: months, datasets: sortedCats.map((c, i) => ({ label: c, backgroundColor: colors[i % colors.length], data: months.map(m => list.filter(d => d.date.substring(0, 7) === m && categorizeMile(d.content) === c).reduce((s, d) => s + Math.abs(d[key]), 0)), borderRadius: 2 })) }, options: { ...chartOptions(window.innerWidth < 768?'bottom':'right'), scales: { x: { stacked: true }, y: { stacked: true } } } });
         }
 
         function renderMixedTrendChart(id, list, bK, lK, bL, lL, bC, lO) {
             const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
             const sorted = [...list].sort((a,b)=>a.date.localeCompare(b.date));
             const dates = [...new Set(sorted.map(d => d.date))];
-            charts[id] = new Chart(ctx, { data: { labels: dates, datasets: [{ type: 'line', label: lL, data: dates.map(d => { const found = sorted.filter(i => i.date === d); return found.length ? found[found.length-1][lK] : null; }), borderColor: lO, borderWidth: 2, fill: false, pointRadius: 1, yAxisID: 'y' }, { type: 'bar', label: bL, data: dates.map(d => sorted.filter(i => i.date === d).reduce((s, i) => s + (i[bK] > 0 ? i[bK] : 0), 0)), backgroundColor: bC, yAxisID: 'y1' }] }, options: { ...chartOptions(window.innerWidth < 768?'bottom':'right'), scales: { y: { position: 'left' }, y1: { position: 'right', grid: { display: false } } } } });
+            charts[id] = new Chart(ctx, { data: { labels: dates, datasets: [{ type: 'line', label: lL, data: dates.map(d => { const f = sorted.filter(i => i.date === d); return f.length ? f[f.length-1][lK] : null; }), borderColor: lO, borderWidth: 2, fill: false, pointRadius: 1, yAxisID: 'y' }, { type: 'bar', label: bL, data: dates.map(d => sorted.filter(i => i.date === d).reduce((s, i) => s + Math.abs(i[bK]), 0)), backgroundColor: bC, yAxisID: 'y1' }] }, options: { ...chartOptions(window.innerWidth < 768?'bottom':'right'), scales: { y: { position: 'left' }, y1: { position: 'right', grid: { display: false } } } } });
         }
 
         function renderFlightStackedBar(id, list) {
             const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
-            const todayStr = new Date().toISOString().split('T')[0];
-            const startVal = document.getElementById('chartFilterStart')?.value || '';
-            const endVal = document.getElementById('chartFilterEnd')?.value || '';
+            const today = new Date();
             let months = [];
-            if (isAllDisplayMode) {
-                months = [...new Set(appData.plans.map(d => d.date.substring(0, 7)))].sort();
-            } else if (startVal && endVal) {
-                let current = new Date(startVal); current.setDate(1);
-                const end = new Date(endVal);
-                while (current <= end) { months.push(current.toISOString().substring(0, 7)); current.setMonth(current.getMonth() + 1); }
-            } else {
-                const today = new Date();
-                for (let i = -3; i <= 3; i++) { const d = new Date(today.getFullYear(), today.getMonth() + i, 1); months.push(d.toISOString().substring(0, 7)); }
+            for (let i = -3; i <= 3; i++) {
+                const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+                months.push(d.toISOString().substring(0, 7));
             }
-            charts[id] = new Chart(ctx, { type: 'bar', data: { labels: months, datasets: [{ label: '済', backgroundColor: '#1e293b', data: months.map(m => list.filter(d => d.date.startsWith(m) && d.status === '済').length) }, { label: '予定', backgroundColor: '#E10009', data: months.map(m => list.filter(d => d.date.startsWith(m) && d.status !== '済' && d.date >= todayStr).length) }] }, options: { ...chartOptions('bottom'), scales: { x: { stacked: true }, y: { stacked: true, ticks: { stepSize: 1, precision: 0 } } } } });
+            charts[id] = new Chart(ctx, { type: 'bar', data: { labels: months, datasets: [{ label: '済', backgroundColor: '#1e293b', data: months.map(m => list.filter(d => d.date.startsWith(m) && d.status === '済').length) }, { label: '予定', backgroundColor: '#E10009', data: months.map(m => list.filter(d => d.date.startsWith(m) && d.status !== '済').length) }] }, options: { ...chartOptions('bottom'), scales: { x: { stacked: true }, y: { stacked: true, ticks: { stepSize: 1 } } } } });
         }
 
         function renderRankingBarChartCombined(id, data) {
             const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
             const container = document.getElementById('rankingChartContainer');
             if (!container) return;
-            const displayData = isRankingExpanded ? data : data.slice(0, 8);
-            
-            if (isRankingExpanded) {
-                const calculatedHeight = Math.max(256, displayData.length * 40);
-                container.style.height = calculatedHeight + "px";
-            } else {
-                container.style.height = '256px';
-            }
-
-            charts[id] = new Chart(ctx, { 
-                type: 'bar', 
-                data: { 
-                    labels: displayData.map(d => d[0]), 
-                    datasets: [{ 
-                        label: '搭乗回数', 
-                        data: displayData.map(d => d[1]), 
-                        backgroundColor: '#E10009', 
-                        borderRadius: 4, 
-                        barThickness: 20 
-                    }] 
-                }, 
-                options: { 
-                    indexAxis: 'y', 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: { callbacks: { label: (context) => " 搭乗回数: " + context.raw + "回" } }
-                    },
-                    scales: { 
-                        x: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } },
-                        y: { ticks: { font: { size: 11, weight: 'bold' } } }
-                    }
-                } 
-            });
+            const disp = isRankingExpanded ? data : data.slice(0, 8);
+            container.style.height = isRankingExpanded ? Math.max(256, disp.length * 40) + "px" : '256px';
+            charts[id] = new Chart(ctx, { type: 'bar', data: { labels: disp.map(d => d[0]), datasets: [{ label: '搭乗回数', data: disp.map(d => d[1]), backgroundColor: '#E10009', borderRadius: 4, barThickness: 20 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } }, y: { ticks: { font: { size: 10, weight: 'bold' } } } } } });
         }
     </script>
 </body>
