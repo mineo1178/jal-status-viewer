@@ -164,7 +164,7 @@
 
     <div id="loading-overlay">
         <div class="spinner mb-4"></div>
-        <p class="text-sm font-bold text-slate-600">データを同期中...</p>
+        <p class="text-sm font-bold text-slate-600">データを取得中...</p>
     </div>
 
     <div id="error-box" class="fixed top-4 left-1/2 -translate-x-1/2 z-[10000] hidden">
@@ -209,14 +209,10 @@
                 <h2 id="tabTitle" class="text-lg md:text-xl font-extrabold text-slate-800 tracking-tight">ダッシュボード</h2>
             </div>
             <div class="flex items-center gap-3">
-                <button onclick="document.getElementById('fileInput').click()" class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition-colors text-xs font-bold border border-slate-200">
-                    <i class="fa-solid fa-file-excel text-emerald-600"></i>
-                    <span class="hidden sm:inline">ファイルを読込</span>
-                </button>
-                <input type="file" id="fileInput" class="hidden" accept=".xlsx,.xls" onchange="handleFileUpload(this)">
-                
-                <button onclick="syncFromUrl()" class="text-slate-400 hover:text-red-600 transition-colors">
-                    <i class="fa-solid fa-rotate text-sm"></i>
+                <!-- 自動同期ボタン -->
+                <button onclick="syncFromUrl()" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg transition-all text-xs font-bold border border-slate-200">
+                    <i class="fa-solid fa-rotate text-red-600"></i>
+                    <span>データを更新</span>
                 </button>
                 <div class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-900 flex items-center justify-center text-white border-2 border-white shadow-md">
                     <i class="fa-solid fa-user-tie text-xs md:text-base"></i>
@@ -228,11 +224,6 @@
             
             <!-- DASHBOARD TAB -->
             <div id="tab-dashboard" class="tab-content active space-y-6 md:space-y-8">
-                <div id="welcome-message" class="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6 flex items-center gap-3">
-                    <i class="fa-solid fa-circle-info text-blue-500"></i>
-                    <p class="text-xs font-bold text-blue-800">上の「ファイルを読込」ボタンからExcelデータを選択してください。</p>
-                </div>
-
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                     <div onclick="switchTab('miles')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-[#E10009] cursor-pointer">
                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Miles</p>
@@ -435,6 +426,7 @@
         let flightSortKey = 'date';
         let flightSortOrder = 'desc';
 
+        // GitHub上の生ファイルURL
         const EXCEL_URL = "https://raw.githubusercontent.com/mineo1178/jal-status-viewer/main/data/20251229_LSP%E7%AE%A1%E7%90%86.xlsx";
 
         const safeSetText = (id, text) => { const el = document.getElementById(id); if (el) el.innerText = text; };
@@ -451,7 +443,6 @@
                 return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
             }
             let str = String(val).replace(/[\s\u00A0]/g, '').trim();
-            // JAL集計行の無視
             if (str.includes('まで')) return "";
             const matchIso = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
             if (matchIso) {
@@ -500,24 +491,27 @@
 
         window.onload = async () => { await syncFromUrl(); };
 
-        function handleFileUpload(input) {
-            const file = input.files[0];
-            if (!file) return;
+        // サーバーからデータを取得する関数
+        async function syncFromUrl() {
             const overlay = document.getElementById('loading-overlay');
             if(overlay) overlay.style.display = 'flex';
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const wb = XLSX.read(data, { type: 'array', cellDates: true });
-                    appData.lsp = []; appData.miles = []; appData.plans = [];
-                    wb.SheetNames.forEach(name => processRows(name, XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 })));
-                    document.getElementById('welcome-message')?.classList.add('hidden');
-                    updateUI();
-                } catch (err) { showError("ファイルの解析に失敗しました: " + err.message); }
-                finally { if(overlay) overlay.style.display = 'none'; }
-            };
-            reader.readAsArrayBuffer(file);
+            try {
+                const response = await fetch(EXCEL_URL);
+                if (!response.ok) throw new Error("データの取得に失敗しました");
+                const buffer = await response.arrayBuffer();
+                const wb = XLSX.read(buffer, { cellDates: true });
+                
+                appData.lsp = []; appData.miles = []; appData.plans = [];
+                wb.SheetNames.forEach(name => processRows(name, XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 })));
+                
+                document.getElementById('welcome-message')?.classList.add('hidden');
+                updateUI();
+            } catch (e) { 
+                console.error("Auto-sync failed:", e.message);
+                showError("サーバーデータの取得に失敗しました。再読み込みしてください。");
+            } finally {
+                if(overlay) overlay.style.display = 'none';
+            }
         }
 
         function showError(msg) {
@@ -584,22 +578,6 @@
             document.getElementById('lspTrendSection').classList.toggle('hidden', tabId !== 'lsp');
             if (tabId === 'flights') populateMonthSelector(appData.plans);
             updateUI();
-        }
-
-        async function syncFromUrl() {
-            const overlay = document.getElementById('loading-overlay');
-            if(overlay) overlay.style.display = 'flex';
-            try {
-                const response = await fetch(EXCEL_URL);
-                if (!response.ok) throw new Error("Fetch failed");
-                const buffer = await response.arrayBuffer();
-                const wb = XLSX.read(buffer, { cellDates: true });
-                appData.lsp = []; appData.miles = []; appData.plans = [];
-                wb.SheetNames.forEach(name => processRows(name, XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 })));
-                document.getElementById('welcome-message')?.classList.add('hidden');
-                updateUI();
-            } catch (e) { console.warn("Auto-sync failed."); }
-            finally { if(overlay) overlay.style.display = 'none'; }
         }
 
         function getCol(h, kws) {
@@ -706,7 +684,7 @@
 
         function updateUI() {
             const todayStr = new Date().toISOString().split('T')[0];
-            const targetYear = "2026"; // 2026年度に固定
+            const targetYear = "2026"; // 2026年度実績
             appData.yearlyMonthly.year = targetYear;
             safeSetText('chart-main-title', `ステータス進捗 (2026年度実績)`);
 
@@ -714,7 +692,7 @@
             const yearlyPlans = appData.plans.filter(p => p.date.startsWith(targetYear) && p.status === '済');
             appData.stats.yearlyFlights = yearlyPlans.length;
 
-            // 2. FOP (Yearly FOP): マイル履歴の2026年FLYONポイントの単純総和
+            // 2. FOP (Yearly FOP): マイル管理シートの2026年FLYONポイントの単純総和
             const yearlyMiles = appData.miles.filter(m => m.date.startsWith(targetYear));
             appData.stats.fop = yearlyMiles.reduce((sum, m) => sum + (m.fop || 0), 0);
 
