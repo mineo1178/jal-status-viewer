@@ -483,7 +483,6 @@
             return isNaN(d.getTime()) ? "" : "(" + days[d.getDay()] + ")";
         }
 
-        // トレンドデータの期間フィルタリング関数
         function getFilteredTrendData(data, period) {
             if (period === 'all') return data;
             const now = new Date();
@@ -514,7 +513,7 @@
                 updateUI();
             } catch (e) { 
                 console.error("Auto-sync failed:", e.message);
-                showError("サーバーデータの取得に失敗しました。");
+                showError("サーバーデータの取得に失敗しました。再読み込みしてください。");
             } finally {
                 if(overlay) overlay.style.display = 'none';
             }
@@ -573,16 +572,25 @@
             const monthSel = document.getElementById('monthSelector');
             if (monthSel) { monthSel.classList.add('hidden'); monthSel.value = 'all'; }
             
-            // デフォルト期間の設定 (本日より過去6ヶ月間)
+            // 期間入力欄のデフォルト設定
             const sInp = document.getElementById('chartFilterStart');
             const eInp = document.getElementById('chartFilterEnd');
             if (sInp && eInp) {
                 const today = new Date();
-                const sixMonthsAgo = new Date();
-                sixMonthsAgo.setMonth(today.getMonth() - 6);
+                const start = new Date();
+                const end = new Date();
+
+                if (tabId === 'flights') {
+                    // フライト実績チャート: 前後3ヶ月
+                    start.setMonth(today.getMonth() - 3);
+                    end.setMonth(today.getMonth() + 3);
+                } else {
+                    // マイル・LSP: 過去6ヶ月
+                    start.setMonth(today.getMonth() - 6);
+                }
                 
-                sInp.value = sixMonthsAgo.toISOString().split('T')[0];
-                eInp.value = today.toISOString().split('T')[0];
+                sInp.value = start.toISOString().split('T')[0];
+                eInp.value = end.toISOString().split('T')[0];
                 sInp.disabled = false; eInp.disabled = false;
                 isAllDisplayMode = false;
                 const allBtn = document.getElementById('allDisplayBtn');
@@ -750,15 +758,15 @@
                 const cat = document.getElementById('categorySelector')?.value || 'all';
                 const list = currentTab === 'miles' ? appData.miles : (currentTab === 'lsp' ? appData.lsp : appData.plans);
                 
-                // フライト管理タブは「データ明細」について、チャート用の日付フィルタ（sVal/eVal）を無視する
+                // フライト管理タブは「データ明細」について、チャート用の日付フィルタを無視して全件参照
                 let filteredForTable;
                 if (currentTab === 'flights') {
-                    filteredForTable = list; // 全期間
+                    filteredForTable = list; 
                 } else {
                     filteredForTable = isAllDisplayMode ? list : list.filter(i => (!sVal || i.date >= sVal) && (!eVal || i.date <= eVal));
                 }
 
-                // 月セレクタ、カテゴリセレクタは常に有効
+                // カテゴリ/ステータス/月フィルタを適用
                 const monthFilter = document.getElementById('monthSelector')?.value || 'all';
                 let finalFiltered = filteredForTable;
                 if (monthFilter !== 'all') finalFiltered = finalFiltered.filter(i => i.date.startsWith(monthFilter));
@@ -782,7 +790,7 @@
             let displayFop = [...appData.yearlyMonthly.fop];
             let displayFl = [...appData.yearlyMonthly.fl];
 
-            // 未来月のデータを null にして表示しない (グラフの枠組み12ヶ月は維持)
+            // 未来月のデータを null にして非表示にする (グラフの枠組み12ヶ月は維持)
             if (appData.yearlyMonthly.year === currentYear) {
                 for (let i = currentMonthIdx + 1; i < 12; i++) {
                     displayFop[i] = null;
@@ -821,7 +829,7 @@
             
             renderStackedBar('detailLineChart', data, 'points');
             
-            // LSP推移：最初の実績日から描画（ベースラインなし）
+            // LSP推移：最初の実績日から描画
             const trendData = getFilteredTrendData(appData.lsp, document.getElementById('lspTrendPeriod').value);
             renderMixedTrendChart('lspMixedChart', trendData, 'points', 'total', '獲得', '累計', '#1e293b', '#3b82f6', false);
             
@@ -835,7 +843,7 @@
         }
 
         function updateFlightsTab(data, statusFilter) {
-            // チャートは実績の期間フィルタに従う
+            // チャートは実績の期間フィルタ（前後3ヶ月）に従う
             const sVal = document.getElementById('chartFilterStart')?.value || '';
             const eVal = document.getElementById('chartFilterEnd')?.value || '';
             const chartFilteredPlans = appData.plans.filter(i => (!sVal || i.date >= sVal) && (!eVal || i.date <= eVal));
@@ -850,7 +858,7 @@
             const routeStats = {}; allPlans.forEach(p => { if(p.status === '済'){ const r = `${p.from} → ${p.to}`; routeStats[r] = (routeStats[r] || 0) + 1; }});
             renderRankingBarChartCombined('rankingChartCombined', Object.entries(routeStats).sort((a,b)=>b[1]-a[1]));
             
-            // 明細テーブルは全区間からの独立したフィルタ結果（引数data）を使用
+            // 明細テーブルは独立したフィルタ結果（引数data）を使用
             const sorted = [...data].sort((a,b) => flightSortOrder === 'asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
             const getSortIcon = (key) => flightSortKey === key ? (flightSortOrder === 'asc' ? ' <i class="fa-solid fa-sort-up"></i>' : ' <i class="fa-solid fa-sort-down"></i>') : ' <i class="fa-solid fa-sort text-slate-200"></i>';
             safeSetHTML('table-head', `<tr><th class="p-3 sort-header" onclick="handleFlightSort('date')">日付${getSortIcon('date')}</th><th class="p-3">便名</th><th class="p-3">出発地</th><th class="p-3">到着地</th><th class="p-3 text-center">状態</th><th class="p-3 text-right">料金</th></tr>`);
@@ -904,7 +912,7 @@
             let lineData = dates.map(d => { const f = sorted.filter(i => i.date === d); return f.length ? f[f.length-1][lK] : null; });
             let barData = dates.map(d => sorted.filter(i => i.date === d).reduce((s, i) => s + Math.abs(i[bK]), 0));
 
-            // LSP管理では最初の実績日から開始するため、何もしない（dashboard等で0スタートしたい時のみ使用）
+            // 年度初めの0スタートが不要な場合はそのまま描画
             if (startZero && dates.length > 0) {
                 dates.unshift("年度初め");
                 lineData.unshift(0);
@@ -921,6 +929,7 @@
             const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
             const today = new Date();
             let months = [];
+            // 前後3ヶ月を表示（計7ヶ月分）
             for (let i = -3; i <= 3; i++) {
                 const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
                 months.push(d.toISOString().substring(0, 7));
