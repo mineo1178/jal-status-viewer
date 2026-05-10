@@ -14,6 +14,11 @@
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- 追加: Leaflet.js -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
         /* Safe Area 対策 - iPhoneのノッチ・ホームバー対応 */
         html, body {
@@ -101,7 +106,7 @@
             overflow-y: auto;
             overflow-x: auto;
         }
-        select, input[type="date"] {
+        select, input[type="text"], input[type="date"] {
             border: 1px solid #e2e8f0;
             padding: 0.4rem 0.6rem;
             border-radius: 0.5rem;
@@ -158,6 +163,28 @@
             animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* 追加: Leaflet用Z-index調整 */
+        .leaflet-container {
+            z-index: 10;
+        }
+        /* Leafletポップアップ内スクロール調整 */
+        .custom-popup .leaflet-popup-content {
+            margin: 10px 12px;
+            line-height: 1.4;
+        }
+        /* 曲線ホバー用カーソル */
+        .leaflet-interactive {
+            cursor: pointer;
+            transition: opacity 0.2s, stroke-width 0.2s;
+        }
+        /* ツールチップ用の追加スタイル */
+        .custom-tooltip {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body class="flex flex-col md:flex-row h-screen overflow-hidden">
@@ -277,6 +304,83 @@
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8" id="analysisGrid">
+
+                    <!-- フライトマップセクション -->
+                    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100 hidden lg:col-span-2 flex flex-col" id="flightMapSection">
+                        <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start mb-4 gap-4">
+                            <h3 class="font-black text-sm md:text-base text-slate-800 flex items-center gap-2 whitespace-nowrap pt-1">
+                                <i class="fa-solid fa-map-location-dot text-slate-600"></i>
+                                フライトマップ
+                            </h3>
+                            <div class="flex flex-col items-end gap-3 text-[10px] font-bold text-slate-500 w-full lg:w-auto">
+                                <div class="flex flex-wrap gap-3 w-full justify-end">
+                                    <div class="flex flex-col gap-1 items-start">
+                                        <label class="text-[9px] text-slate-400">航空会社</label>
+                                        <select id="flightMapAirlineFilter" onchange="updateUI()" class="border-slate-200">
+                                            <option value="all">全カテゴリ</option>
+                                            <option value="JAL">JAL</option>
+                                            <option value="JTA">JTA</option>
+                                            <option value="RAC">RAC</option>
+                                            <option value="JAC">JAC</option>
+                                            <option value="HAC">HAC</option>
+                                            <option value="other">その他</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex flex-col gap-1 items-start">
+                                        <label class="text-[9px] text-slate-400">発着空港</label>
+                                        <select id="flightMapAirportFilter" onchange="updateUI()" class="border-slate-200">
+                                            <option value="all">全ての発着空港</option>
+                                            <option value="hnd">羽田を含む便</option>
+                                            <option value="fuk">福岡を含む便</option>
+                                            <option value="oka">那覇を含む便</option>
+                                            <option value="itm">伊丹を含む便</option>
+                                            <option value="nrt">成田を含む便</option>
+                                            <option value="intl">国際線のみ</option>
+                                            <option value="dom">国内線のみ</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex flex-col gap-1 items-start">
+                                        <label class="text-[9px] text-slate-400">表示期間</label>
+                                        <select id="flightMapPeriodSelector" onchange="updateUI()" class="border-slate-200">
+                                            <option value="1w">1週間</option>
+                                            <option value="2w">2週間</option>
+                                            <option value="1m">1か月</option>
+                                            <option value="3m" selected>3か月</option>
+                                            <option value="6m">6か月</option>
+                                            <option value="1y">1年</option>
+                                            <option value="all">全区間</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="text-right flex flex-col gap-0.5 mt-1">
+                                    <span id="flightMapConditionLabel">表示条件：直近3か月 / 全カテゴリ / 全ての発着空港</span>
+                                    <span id="flightMapTargetCountLabel">対象便数：0便</span>
+                                    <span id="flightMapCountLabel">地図表示：0区間</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- マップ上の凡例と補足 -->
+                        <div class="flex flex-wrap items-center justify-between text-[10px] font-bold text-slate-600 mb-2 gap-2">
+                            <div class="flex flex-wrap items-center gap-3">
+                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full" style="background-color: #E10009;"></span>JAL</span>
+                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full" style="background-color: #0ea5e9;"></span>JTA</span>
+                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full" style="background-color: #22c55e;"></span>RAC</span>
+                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full" style="background-color: #f97316;"></span>JAC</span>
+                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full" style="background-color: #8b5cf6;"></span>HAC</span>
+                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full" style="background-color: #64748b;"></span>その他</span>
+                            </div>
+                            <span class="text-[9px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded shadow-sm">※線が太く・濃いほど搭乗回数が多い</span>
+                        </div>
+
+                        <div id="flight-map-container" class="w-full h-[320px] md:h-[420px] rounded-xl border border-slate-100 bg-slate-50 relative z-10"></div>
+                        
+                        <div class="mt-2 text-right">
+                            <span id="flightMapMissingLabel" class="text-[10px] font-bold text-red-500 hidden">未表示：0件（空港マスタ未登録）</span>
+                            <div id="flightMapMissingAirports" class="text-[9px] text-red-400 hidden mt-0.5"></div>
+                        </div>
+                    </div>
+
                     <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100 flex flex-col" id="pieChartContainer">
                         <div class="flex justify-between items-center mb-4 md:mb-6">
                             <h3 class="font-black text-sm md:text-base text-slate-800" id="detailPieTitle">内訳</h3>
@@ -435,6 +539,101 @@
         let isRankingExpanded = false;
         let flightSortKey = 'date';
         let flightSortOrder = 'desc';
+
+        function normalizeAirportName(name) {
+            const s = String(name || '').trim();
+            if (s.includes('羽田') || s.includes('東京')) return 'HND';
+            if (s.includes('成田')) return 'NRT';
+            if (s.includes('伊丹') || s.includes('大阪')) return 'ITM';
+            if (s.includes('関西')) return 'KIX';
+            if (s.includes('福岡')) return 'FUK';
+            if (s.includes('那覇') || s.includes('沖縄')) return 'OKA';
+            if (s.includes('新千歳') || s.includes('札幌')) return 'CTS';
+            if (s.includes('青森')) return 'AOJ';
+            if (s.includes('三沢')) return 'MSJ';
+            if (s.includes('中部') || s.includes('名古屋')) return 'NGO';
+            if (s.includes('石垣')) return 'ISG';
+            if (s.includes('宮古')) return 'MMY';
+            if (s.includes('台北') || s.includes('桃園')) return 'TPE';
+            if (s.includes('ホノルル')) return 'HNL';
+            
+            if (s.includes('徳島')) return 'TKS';
+            if (s.includes('宮崎')) return 'KMI';
+            if (s.includes('与那国')) return 'OGN';
+            if (s.includes('多良間')) return 'TRA';
+            if (s.includes('奄美')) return 'ASJ';
+            if (s.includes('喜界')) return 'KKX';
+            if (s.includes('徳之島')) return 'TKN';
+            if (s.includes('沖永良部')) return 'OKE';
+            if (s.includes('高知')) return 'KCZ';
+            if (s.includes('松山')) return 'MYJ';
+            if (s.includes('小松')) return 'KMQ';
+            if (s.includes('久米島')) return 'UEO';
+            if (s.includes('鹿児島')) return 'KOJ';
+            if (s.includes('広島')) return 'HIJ';
+            if (s.includes('岡山')) return 'OKJ';
+            if (s.includes('函館')) return 'HKD';
+            if (s.includes('旭川')) return 'AKJ';
+            if (s.includes('熊本')) return 'KMJ';
+            if (s.includes('長崎')) return 'NGS';
+            
+            if (s.includes('高松')) return 'TAK';
+            if (s.includes('与論')) return 'RNJ';
+            if (s.includes('南大東')) return 'MMD';
+            if (s.includes('奥尻')) return 'OIR';
+            if (s.includes('根室中標津') || s.includes('中標津')) return 'SHB';
+            
+            return s.toUpperCase();
+        }
+
+        const airportCoords = {
+            "HND": [35.549393, 139.779839],
+            "NRT": [35.771987, 140.392850],
+            "ITM": [34.785500, 135.438004],
+            "KIX": [34.432002, 135.230394],
+            "FUK": [33.585899, 130.450993],
+            "OKA": [26.195814, 127.645869],
+            "CTS": [42.775200, 141.692283],
+            "AOJ": [40.733333, 140.691667],
+            "MSJ": [40.704444, 141.368333],
+            "NGO": [34.858333, 136.805278],
+            "ISG": [24.396389, 124.245000],
+            "MMY": [24.782778, 125.280000],
+            "TPE": [25.077731, 121.232822],
+            "HNL": [21.318681, -157.922428],
+            "TKS": [34.1328, 134.6064],
+            "KMI": [31.8772, 131.4486],
+            "OGN": [24.4681, 122.9772],
+            "TRA": [24.6539, 124.6942],
+            "ASJ": [28.4306, 129.7125],
+            "KKX": [28.3192, 129.9281],
+            "TKN": [27.8361, 128.8814],
+            "OKE": [27.4258, 128.6014],
+            "KCZ": [33.5461, 133.6694],
+            "MYJ": [33.8272, 132.7000],
+            "KMQ": [36.3939, 136.4069],
+            "UEO": [26.3636, 126.7125],
+            "KOJ": [31.8033, 130.7189],
+            "HIJ": [34.4397, 132.9189],
+            "OKJ": [34.7578, 133.8553],
+            "HKD": [41.7700, 140.8222],
+            "AKJ": [43.6708, 142.4475],
+            "KMJ": [32.8372, 130.8550],
+            "NGS": [32.9169, 129.9136],
+            "TAK": [34.2142, 134.0156],
+            "RNJ": [27.0440, 128.4015],
+            "MMD": [25.8465, 131.2635],
+            "OIR": [42.0717, 139.4329],
+            "SHB": [43.5775, 144.9600]
+        };
+
+        function getAirportCoords(name) {
+            const key = normalizeAirportName(name);
+            return airportCoords[key] || airportCoords[name] || null;
+        }
+
+        let flightMap = null;
+        let flightLayerGroup = null;
 
         const EXCEL_URL = "https://raw.githubusercontent.com/mineo1178/jal-status-viewer/main/data/20251229_LSP%E7%AE%A1%E7%90%86.xlsx";
 
@@ -620,8 +819,9 @@
             document.getElementById('lineChartContainer').classList.toggle('lg:col-span-2', tabId === 'flights');
             document.getElementById('mileTrendSection').classList.toggle('hidden', tabId !== 'miles');
             document.getElementById('lspTrendSection').classList.toggle('hidden', tabId !== 'lsp');
-            // フライト管理の時だけランキングセクションを表示
+            // フライト管理の時だけランキング・地図セクションを表示
             document.getElementById('rankingSection').classList.toggle('hidden', tabId !== 'flights');
+            document.getElementById('flightMapSection').classList.toggle('hidden', tabId !== 'flights');
             
             if (tabId === 'flights') populateMonthSelector(appData.plans);
             
@@ -844,6 +1044,120 @@
             safeSetHTML('mobile-details-list', sorted.map(l => `<div class="details-card"><div class="flex justify-between items-start"><span class="text-[10px] font-black">${l.date}</span><span class="text-[9px] px-2 py-0.5 rounded bg-slate-100 font-bold">${l.ui_category}</span></div><p class="text-xs font-bold">${l.content}</p><div class="flex justify-between pt-2 border-t"><p class="text-xs font-bold text-slate-800">${l.total.toLocaleString()}</p><p class="text-sm font-black text-blue-500">+${l.points.toLocaleString()} LSP</p></div></div>`).join(''));
         }
 
+        // フライトマップ用：航空会社カテゴリの判定
+        function getAirlineCategory(airline) {
+            const a = String(airline || '').toUpperCase();
+            if (['JAL', 'JTA', 'RAC', 'JAC', 'HAC'].includes(a)) return a;
+            return 'other';
+        }
+
+        // 変更: フライトマップ用：フィルタ関数 (今日基準へ修正)
+        function getFlightMapFilteredPlans() {
+            const period = document.getElementById('flightMapPeriodSelector')?.value || '3m';
+            const airlineFilter = document.getElementById('flightMapAirlineFilter')?.value || 'all';
+            const airportFilter = document.getElementById('flightMapAirportFilter')?.value || 'all';
+
+            const completed = appData.plans.filter(p => p.status === '済');
+            if (completed.length === 0) return { plans: [], info: { periodStr: '全期間', conditionStr: 'データなし' } };
+
+            let filteredByPeriod = completed;
+            let startStr = "";
+            let endStr = "";
+            let periodName = "";
+
+            if (period === 'all') {
+                periodName = '全区間';
+            } else {
+                // 変更: 基準日を「今日」にする
+                const end = new Date();
+                const start = new Date(end);
+
+                if (period === '1w') { start.setDate(start.getDate() - 7); periodName = '直近1週間（今日基準）'; }
+                if (period === '2w') { start.setDate(start.getDate() - 14); periodName = '直近2週間（今日基準）'; }
+                if (period === '1m') { start.setMonth(start.getMonth() - 1); periodName = '直近1か月（今日基準）'; }
+                if (period === '3m') { start.setMonth(start.getMonth() - 3); periodName = '直近3か月（今日基準）'; }
+                if (period === '6m') { start.setMonth(start.getMonth() - 6); periodName = '直近6か月（今日基準）'; }
+                if (period === '1y') { start.setFullYear(start.getFullYear() - 1); periodName = '直近1年（今日基準）'; }
+
+                // タイムゾーンによる日付のズレを防ぐためローカルタイムでのYYYY-MM-DDを生成
+                const endLocal = new Date(end.getTime() - (end.getTimezoneOffset() * 60000));
+                const startLocal = new Date(start.getTime() - (start.getTimezoneOffset() * 60000));
+
+                startStr = startLocal.toISOString().split('T')[0];
+                endStr = endLocal.toISOString().split('T')[0];
+
+                filteredByPeriod = completed.filter(p => p.date >= startStr && p.date <= endStr);
+            }
+
+            let finalFiltered = filteredByPeriod;
+
+            // 航空会社(カテゴリ)フィルタ
+            let airlineName = "全カテゴリ";
+            if (airlineFilter !== 'all') {
+                if (airlineFilter === 'other') {
+                    finalFiltered = finalFiltered.filter(p => getAirlineCategory(p.airline) === 'other');
+                    airlineName = "その他";
+                } else {
+                    finalFiltered = finalFiltered.filter(p => String(p.airline || '').toUpperCase() === airlineFilter);
+                    airlineName = airlineFilter;
+                }
+            }
+
+            // 空港フィルタ
+            let airportName = "全ての発着空港";
+            if (airportFilter !== 'all') {
+                finalFiltered = finalFiltered.filter(p => {
+                    const route = (p.from + p.to).toUpperCase();
+                    const isIntl = ['TPE', '台北', 'HNL', 'ホノルル'].some(a => p.from.includes(a) || p.to.includes(a));
+                    if (airportFilter === 'hnd') return route.includes('HND') || route.includes('羽田');
+                    if (airportFilter === 'oka') return route.includes('OKA') || route.includes('那覇');
+                    if (airportFilter === 'fuk') return route.includes('FUK') || route.includes('福岡');
+                    if (airportFilter === 'itm') return route.includes('ITM') || route.includes('伊丹');
+                    if (airportFilter === 'nrt') return route.includes('NRT') || route.includes('成田');
+                    if (airportFilter === 'intl') return isIntl;
+                    if (airportFilter === 'dom') return !isIntl;
+                    return true;
+                });
+                const airportLabels = {
+                    hnd: '羽田を含む便', oka: '那覇を含む便', fuk: '福岡を含む便', itm: '伊丹を含む便', nrt: '成田を含む便', intl: '国際線のみ', dom: '国内線のみ'
+                };
+                airportName = airportLabels[airportFilter] || "全ての発着空港";
+            }
+
+            const periodStr = period === 'all' ? '全期間' : `${startStr} ～ ${endStr}`;
+            const conditionStr = `${periodName} / ${airlineName} / ${airportName}`;
+
+            return { plans: finalFiltered, info: { periodStr, conditionStr } };
+        }
+
+        // 曲線描画用の座標計算ヘルパー
+        function getCurvePoints(start, end, bendFactor = 0.15, numPoints = 20) {
+            const lat1 = start[0], lng1 = start[1];
+            const lat2 = end[0], lng2 = end[1];
+            const midLat = (lat1 + lat2) / 2;
+            const midLng = (lng1 + lng2) / 2;
+            
+            const dLat = lat2 - lat1;
+            const dLng = lng2 - lng1;
+            
+            // 法線ベクトルを利用して中間点をずらす (進行方向によって曲がる向きが変わるため往復の重なりを回避)
+            const normLat = -dLng * bendFactor;
+            const normLng = dLat * bendFactor;
+            const ctrlLat = midLat + normLat;
+            const ctrlLng = midLng + normLng;
+            
+            const points = [];
+            for (let i = 0; i <= numPoints; i++) {
+                const t = i / numPoints;
+                const u = 1 - t;
+                // 2次ベジェ曲線
+                const pLat = u * u * lat1 + 2 * u * t * ctrlLat + t * t * lat2;
+                const pLng = u * u * lng1 + 2 * u * t * ctrlLng + t * t * lng2;
+                points.push([pLat, pLng]);
+            }
+            return points;
+        }
+
         function updateFlightsTab(data, statusFilter) {
             const sVal = document.getElementById('chartFilterStart')?.value || '';
             const eVal = document.getElementById('chartFilterEnd')?.value || '';
@@ -880,6 +1194,10 @@
             safeSetHTML('table-head', `<tr><th class="p-3 sort-header" onclick="handleFlightSort('date')">日付${getSortIcon('date')}</th><th class="p-3">便名</th><th class="p-3">出発地</th><th class="p-3">到着地</th><th class="p-3 text-center">状態</th><th class="p-3 text-right">料金</th></tr>`);
             safeSetHTML('table-body', sorted.map(p => `<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 font-bold text-xs text-slate-800">${p.date}</td><td class="p-3 font-mono text-[10px] text-slate-500">${p.airline}${p.flightNo}</td><td class="p-3 font-bold text-xs text-slate-700">${p.from}</td><td class="p-3 font-bold text-xs text-slate-700">${p.to}</td><td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[9px] font-black ${p.status==='済'?'bg-slate-200 text-slate-500':'bg-red-600 text-white shadow-sm'}">${p.status}</span></td><td class="p-3 text-right font-black text-xs text-slate-900">${p.fare>0?'¥'+p.fare.toLocaleString():''}</td></tr>`).join('') || '<tr><td colspan="6" class="p-8 text-center text-slate-400 italic">該当データはありません</td></tr>');
             safeSetHTML('mobile-details-list', sorted.map(p => `<div class="details-card border-l-4 ${p.status==='済'?'border-l-slate-300':'border-l-red-600'}"><div class="flex justify-between items-center"><span class="text-[10px] font-black text-slate-500">${p.date}</span><span class="text-[10px] font-black ${p.status==='済'?'text-slate-400':'text-red-600'}">${p.status}</span></div><p class="text-sm font-black text-slate-800">${p.from} → ${p.to}</p><div class=\"flex justify-between border-t border-slate-50 pt-1 mt-1\"><span class=\"text-[10px] text-slate-400 font-bold uppercase tracking-tighter\">${p.airline}${p.flightNo} ${p.depTime}</span><span class=\"text-sm font-black text-slate-900\">${p.fare>0?'¥'+p.fare.toLocaleString():'-'}</span></div></div>`).join(''));
+            
+            // マップの描画
+            const mapData = getFlightMapFilteredPlans();
+            renderFlightMap(mapData.plans, mapData.info);
         }
 
         // --- Charts ---
@@ -959,6 +1277,177 @@
             container.style.height = isRankingExpanded ? Math.max(256, disp.length * 40) + "px" : '256px';
             charts[id] = new Chart(ctx, { type: 'bar', data: { labels: disp.map(d => d[0]), datasets: [{ label: '搭乗回数', data: disp.map(d => d[1]), backgroundColor: '#E10009', borderRadius: 4, barThickness: 20 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } }, y: { ticks: { font: { size: 10, weight: 'bold' } } } } } });
         }
+
+        // フライトマップの描画処理（集約・太さ/濃淡・曲線・ホバー連動・ツールチップ追加）
+        function renderFlightMap(data, info) {
+            if (!flightMap) {
+                flightMap = L.map('flight-map-container').setView([36.2048, 138.2529], 5); // 日本を中心に初期化
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                }).addTo(flightMap);
+                flightLayerGroup = L.featureGroup().addTo(flightMap);
+            }
+            
+            flightLayerGroup.clearLayers();
+            
+            let missingAirports = new Set();
+            let routeGroups = {};
+            
+            const categoryColors = {
+                'JAL': '#E10009',
+                'JTA': '#0ea5e9',
+                'RAC': '#22c55e',
+                'JAC': '#f97316',
+                'HAC': '#8b5cf6',
+                'other': '#64748b'
+            };
+            const categoryNames = {
+                'JAL': 'JAL', 'JTA': 'JTA', 'RAC': 'RAC', 'JAC': 'JAC', 'HAC': 'HAC', 'other': 'その他'
+            };
+            
+            data.forEach(p => {
+                const fromCoords = getAirportCoords(p.from);
+                const toCoords = getAirportCoords(p.to);
+                
+                if (!fromCoords || !toCoords) {
+                    if (!fromCoords) missingAirports.add(p.from);
+                    if (!toCoords) missingAirports.add(p.to);
+                    return;
+                }
+
+                const normFrom = normalizeAirportName(p.from);
+                const normTo = normalizeAirportName(p.to);
+                const cat = getAirlineCategory(p.airline);
+                
+                const routeKey = `${normFrom}-${normTo}-${cat}`;
+                
+                if (!routeGroups[routeKey]) {
+                    routeGroups[routeKey] = {
+                        from: p.from, 
+                        to: p.to,
+                        fromCoords, 
+                        toCoords,
+                        airlineCat: cat,
+                        flights: []
+                    };
+                }
+                routeGroups[routeKey].flights.push(p);
+            });
+
+            Object.values(routeGroups).forEach(route => {
+                const count = route.flights.length;
+                const catName = categoryNames[route.airlineCat];
+                const color = categoryColors[route.airlineCat];
+
+                const baseWeight = Math.min(2 + Math.log2(count + 1), 8);
+                const baseOpacity = Math.min(0.35 + count * 0.05, 0.9);
+                
+                const latlngs = getCurvePoints(route.fromCoords, route.toCoords);
+
+                const polyline = L.polyline(latlngs, {
+                    color: color, 
+                    weight: baseWeight, 
+                    opacity: baseOpacity
+                }).addTo(flightLayerGroup);
+                
+                polyline.on('mouseover', function (e) {
+                    const layer = e.target;
+                    layer.setStyle({ weight: baseWeight + 2, opacity: 1.0 });
+                    layer.bringToFront();
+                });
+                polyline.on('mouseout', function (e) {
+                    const layer = e.target;
+                    layer.setStyle({ weight: baseWeight, opacity: baseOpacity });
+                });
+                
+                const sortedFlights = route.flights.sort((a,b) => b.date.localeCompare(a.date));
+                const latestDate = sortedFlights.length > 0 ? sortedFlights[0].date : '-';
+                
+                const majorBadge = count >= 5 ? '<span class="ml-2 inline-block px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-[9px] font-bold border border-red-200">主要区間</span>' : '';
+                const tooltipHtml = `
+                    <div class="font-sans text-xs text-slate-800">
+                        <div class="font-bold border-b pb-1 mb-1 border-slate-200">
+                            ${route.from} → ${route.to}
+                            ${majorBadge}
+                        </div>
+                        <div class="mb-0.5">搭乗回数：<span class="font-bold">${count}回</span></div>
+                        <div class="mb-0.5">航空会社：<span style="color: ${color};" class="font-bold">${catName}</span></div>
+                        <div class="text-[10px] text-slate-500 mt-1">最新搭乗：${latestDate}</div>
+                    </div>
+                `;
+                polyline.bindTooltip(tooltipHtml, {
+                    sticky: true,
+                    direction: 'top',
+                    opacity: 0.95,
+                    className: 'custom-tooltip'
+                });
+
+                // 既存: クリック時のポップアップ表示
+                const flightListHtml = sortedFlights.slice(0, 5).map(f => `
+                    <div class="border-b border-slate-100 last:border-0 py-1.5">
+                        <div class="flex justify-between items-center gap-4">
+                            <span class="font-bold text-slate-800">${f.date}</span>
+                            <span class="text-slate-500">${f.airline}${f.flightNo}</span>
+                        </div>
+                        <div class="text-[10px] text-slate-400 text-right mt-0.5">${f.depTime} - ${f.arrTime}</div>
+                    </div>
+                `).join('');
+                const moreHtml = count > 5 ? `<div class="text-center text-[10px] text-slate-400 mt-2 font-bold bg-slate-50 py-1 rounded">他 ${count - 5} 件の履歴</div>` : '';
+
+                const popupContent = `
+                    <div class="text-xs font-sans min-w-[200px] custom-popup">
+                        <div class="font-black border-b-2 pb-2 mb-2 text-slate-800 flex justify-between items-center" style="border-color: ${color};">
+                            <span>${route.from} <i class="fa-solid fa-plane text-[10px] text-slate-300 mx-1"></i> ${route.to}</span>
+                        </div>
+                        <div class="mb-2 text-[10px] text-slate-600 space-y-0.5 border-b border-slate-100 pb-2">
+                            <p>航空会社：<span class="font-bold" style="color: ${color};">${catName}</span></p>
+                            <p>搭乗回数：<span class="font-bold text-slate-800">${count} 回</span></p>
+                            <p>最新搭乗日：${latestDate}</p>
+                        </div>
+                        <div class="max-h-[160px] overflow-y-auto pr-1">
+                            ${flightListHtml}
+                            ${moreHtml}
+                        </div>
+                    </div>
+                `;
+                polyline.bindPopup(popupContent);
+            });
+
+            const missingFlightCount = data.length - data.filter(p => getAirportCoords(p.from) && getAirportCoords(p.to)).length;
+            const displayedRouteCount = Object.keys(routeGroups).length;
+
+            safeSetText('flightMapConditionLabel', `表示条件：${info.conditionStr}`);
+            safeSetText('flightMapTargetCountLabel', `対象便数：${data.length}便`);
+            safeSetText('flightMapCountLabel', `地図表示：${displayedRouteCount}区間`);
+
+            const missingBox = document.getElementById('flightMapMissingBox');
+            if (missingBox) {
+                if (missingFlightCount > 0 && missingAirports.size > 0) {
+                    const missingArray = Array.from(missingAirports);
+                    let missingText = missingArray.slice(0, 10).join('、');
+                    if (missingArray.length > 10) {
+                        missingText += ` ほか`;
+                    }
+                    missingBox.innerHTML = `
+                        地図に表示できない便：${missingFlightCount}便<br>
+                        理由：空港名を緯度経度に変換できません<br>
+                        未登録空港：${missingText}
+                    `;
+                    missingBox.classList.remove('hidden');
+                } else {
+                    missingBox.classList.add('hidden');
+                }
+            }
+            
+            setTimeout(() => { 
+                flightMap.invalidateSize(); 
+                if (displayedRouteCount > 0 && flightLayerGroup.getLayers().length > 0) {
+                    flightMap.fitBounds(flightLayerGroup.getBounds(), { padding: [30, 30], maxZoom: 5 });
+                } else {
+                    flightMap.setView([36.2048, 138.2529], 5);
+                }
+            }, 100);
+        }
     </script>
 </body>
-</html>9
+</html>
