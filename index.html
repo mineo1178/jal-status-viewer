@@ -227,15 +227,25 @@
                 <i class="fa-solid fa-plane-departure w-6 text-center text-lg"></i>
                 <span class="sidebar-label ml-3 font-medium">フライト管理</span>
             </button>
+            <button onclick="switchTab('settings')" class="nav-item w-full flex items-center p-3 rounded-xl transition-all" data-tab="settings">
+                <i class="fa-solid fa-gear w-6 text-center text-lg"></i>
+                <span class="sidebar-label ml-3 font-medium">設定</span>
+            </button>
         </nav>
     </aside>
 
     <main class="flex-1 flex flex-col h-full min-w-0 pb-16 md:pb-0">
         <header class="h-14 md:h-16 bg-white border-b flex items-center justify-between px-4 md:px-8 shrink-0 shadow-sm z-10">
-            <div class="flex items-center gap-4">
-                <h2 id="tabTitle" class="text-lg md:text-xl font-extrabold text-slate-800 tracking-tight">ダッシュボード</h2>
+            <div class="flex items-center gap-3 md:gap-4 min-w-0">
+                <button id="headerBackBtn" onclick="returnToDashboard()" class="hidden shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-black text-slate-600 hover:bg-slate-50">
+                    <i class="fa-solid fa-arrow-left mr-1"></i>ダッシュボードへ戻る
+                </button>
+                <h2 id="tabTitle" class="text-lg md:text-xl font-extrabold text-slate-800 tracking-tight truncate">ダッシュボード</h2>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 md:gap-3">
+                <button onclick="switchTab('settings')" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-black text-slate-600 hover:bg-slate-50" title="設定">
+                    <i class="fa-solid fa-gear"></i><span class="hidden md:inline ml-1">設定</span>
+                </button>
                 <div class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-900 flex items-center justify-center text-white border-2 border-white shadow-md">
                     <i class="fa-solid fa-user-tie text-xs md:text-base"></i>
                 </div>
@@ -280,9 +290,8 @@
                             <p class="text-[10px] font-bold text-slate-400 mt-1">読み込み元・対象年・未登録空港を確認</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2 text-[10px] font-bold text-slate-500">
-                            <label class="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">対象年
-                                <select id="targetYearSelector" onchange="setTargetYear(this.value)" class="bg-white border-slate-200 text-slate-700"></select>
-                            </label>
+                            <span class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">対象年：<b id="data-target-year-display" class="text-slate-800">-</b></span>
+                            <button onclick="switchTab('settings')" class="bg-slate-900 hover:bg-slate-700 text-white px-3 py-2 rounded-xl border border-slate-900"><i class="fa-solid fa-gear mr-1"></i>設定を変更</button>
                             <span class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">最終読込：<b id="data-read-time" class="text-slate-800">-</b></span>
                             <span class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">未登録空港：<b id="data-unknown-airports" class="text-slate-800">0</b></span>
                         </div>
@@ -324,12 +333,9 @@
                                 <h3 class="font-black text-sm md:text-base text-slate-800 flex items-center gap-2"><i class="fa-solid fa-bullseye text-red-600"></i> 目標達成管理</h3>
                                 <p class="text-[10px] font-bold text-slate-400 mt-1">現在実績・年末ペース・予定便込みの着地見込みを分離表示</p>
                             </div>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px] font-bold text-slate-500">
-                                <label class="flex flex-col gap-1">FOP目標<input id="goal-fop" type="text" value="50000" class="w-full text-right"></label>
-                                <label class="flex flex-col gap-1">LSP目標<input id="goal-lsp" type="text" value="1500" class="w-full text-right"></label>
-                                <label class="flex flex-col gap-1">加算回数目標<input id="goal-eligible-flights" type="text" value="150" class="w-full text-right"></label>
-                                <label class="flex flex-col gap-1">実搭乗目標<input id="goal-actual-flights" type="text" value="150" class="w-full text-right"></label>
-                                <button onclick="saveGoalSettings()" class="col-span-2 md:col-span-4 bg-slate-900 hover:bg-slate-700 text-white rounded-lg px-3 py-2 transition-colors">目標値を保存</button>
+                            <div class="flex flex-wrap items-center gap-2 text-[10px] font-bold text-slate-500">
+                                <span class="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2">目標値は設定ページで管理</span>
+                                <button onclick="switchTab('settings')" class="bg-slate-900 hover:bg-slate-700 text-white rounded-lg px-3 py-2 transition-colors"><i class="fa-solid fa-gear mr-1"></i>目標値を変更</button>
                             </div>
                         </div>
                         <div class="overflow-x-auto rounded-xl border border-slate-100 no-scrollbar">
@@ -366,6 +372,58 @@
                     <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100">
                         <h3 class="font-black text-sm md:text-base text-slate-800 flex items-center gap-2 mb-4 md:mb-6"><i class="fa-solid fa-chart-pie text-blue-500"></i> <span id="dash-lsp-pie-title">LSP獲得内訳</span></h3>
                         <div class="h-64"><canvas id="lspPieChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SETTINGS TAB -->
+            <div id="tab-settings" class="tab-content space-y-6 md:space-y-8">
+                <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100">
+                    <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
+                        <div>
+                            <h3 class="font-black text-base text-slate-800 flex items-center gap-2"><i class="fa-solid fa-gear text-slate-700"></i> 表示・目標設定</h3>
+                            <p class="text-[10px] font-bold text-slate-400 mt-1">年度や目標値は分析条件です。ここでまとめて管理します。</p>
+                        </div>
+                        <button onclick="returnToDashboard()" class="text-[10px] font-black bg-slate-900 hover:bg-slate-700 text-white px-4 py-2 rounded-xl"><i class="fa-solid fa-arrow-left mr-1"></i>ダッシュボードへ戻る</button>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                            <h4 class="text-sm font-black text-slate-800 mb-3">年度設定</h4>
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">対象年</label>
+                            <select id="targetYearSelector" onchange="setTargetYear(this.value)" class="mt-2 w-full bg-white border-slate-200 text-slate-700"></select>
+                            <p class="text-[10px] font-bold text-slate-400 mt-3">ダッシュボード、目標達成管理、監査チェックの対象年として使います。</p>
+                        </div>
+                        <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                            <h4 class="text-sm font-black text-slate-800 mb-3">目標値</h4>
+                            <div class="grid grid-cols-2 gap-3 text-[10px] font-bold text-slate-500">
+                                <label class="flex flex-col gap-1">FOP目標<input id="goal-fop" type="text" value="50000" class="w-full text-right"></label>
+                                <label class="flex flex-col gap-1">LSP目標<input id="goal-lsp" type="text" value="1500" class="w-full text-right"></label>
+                                <label class="flex flex-col gap-1">加算回数目標<input id="goal-eligible-flights" type="text" value="150" class="w-full text-right"></label>
+                                <label class="flex flex-col gap-1">実搭乗目標<input id="goal-actual-flights" type="text" value="150" class="w-full text-right"></label>
+                                <button onclick="saveGoalSettings()" class="col-span-2 bg-slate-900 hover:bg-slate-700 text-white rounded-lg px-3 py-2 transition-colors">設定を保存</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+                    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100">
+                        <h3 class="font-black text-sm text-slate-800 flex items-center gap-2 mb-4"><i class="fa-solid fa-database text-slate-600"></i> データ状態</h3>
+                        <div class="space-y-3 text-xs font-bold text-slate-600">
+                            <div class="rounded-xl bg-slate-50 p-3 border border-slate-100">読込元：<span id="settings-data-source" class="text-slate-900">-</span></div>
+                            <div class="rounded-xl bg-slate-50 p-3 border border-slate-100">最終読込：<span id="settings-read-time" class="text-slate-900">-</span></div>
+                            <div class="rounded-xl bg-slate-50 p-3 border border-slate-100">最新日付：<span id="settings-last-dates" class="text-slate-900">-</span></div>
+                            <div class="rounded-xl bg-slate-50 p-3 border border-slate-100">未登録空港：<span id="settings-airport-check" class="text-slate-900">-</span></div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100">
+                        <h3 class="font-black text-sm text-slate-800 flex items-center gap-2 mb-4"><i class="fa-solid fa-route text-slate-600"></i> 遷移ショートカット</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button onclick="switchTab('dashboard')" class="rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100 p-4 text-left"><b class="block text-sm text-slate-800">ダッシュボード</b><span class="text-[10px] font-bold text-slate-400">全体状況へ戻る</span></button>
+                            <button onclick="switchTab('miles')" class="rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100 p-4 text-left"><b class="block text-sm text-slate-800">マイル管理</b><span class="text-[10px] font-bold text-slate-400">カテゴリ別実績</span></button>
+                            <button onclick="switchTab('lsp')" class="rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100 p-4 text-left"><b class="block text-sm text-slate-800">LSP管理</b><span class="text-[10px] font-bold text-slate-400">LSP内訳・推移</span></button>
+                            <button onclick="switchTab('flights')" class="rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100 p-4 text-left"><b class="block text-sm text-slate-800">フライト管理</b><span class="text-[10px] font-bold text-slate-400">地図・区間分析</span></button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -664,6 +722,10 @@
                 <i class="fa-solid fa-plane-departure text-lg"></i>
                 <span class="text-[10px] font-bold">フライト</span>
             </button>
+            <button onclick="switchTab('settings')" class="mobile-nav-item flex flex-col items-center gap-1" data-tab-mob="settings">
+                <i class="fa-solid fa-gear text-lg"></i>
+                <span class="text-[10px] font-bold">設定</span>
+            </button>
         </nav>
     </main>
 
@@ -868,6 +930,7 @@
             };
             localStorage.setItem('jalGoalSettings', JSON.stringify(goals));
             setGoalInputs();
+            showError('設定を保存しました。');
             updateUI();
         }
 
@@ -982,11 +1045,24 @@
 
         function renderDataStatus(targetYear) {
             const unknown = getUnknownAirports(appData.plans.filter(p => !targetYear || p.date.startsWith(targetYear)));
+            const lastDates = `計画 ${getLatestDate(appData.plans)} / マイル ${getLatestDate(appData.miles)} / LSP ${getLatestDate(appData.lsp)}`;
+            const airportCheck = unknown.length ? `未登録：${unknown.slice(0, 3).join('、')}${unknown.length > 3 ? ' ほか' : ''}` : '登録済み空港のみ';
+            safeSetText('data-target-year-display', `${targetYear}年`);
             safeSetText('data-source-file', appData.meta.sourceFile || 'data/20251229_LSP管理.xlsx');
             safeSetText('data-read-time', formatTimestamp(appData.meta.lastReadAt));
             safeSetText('data-unknown-airports', unknown.length.toLocaleString());
-            safeSetText('data-last-dates', `計画 ${getLatestDate(appData.plans)} / マイル ${getLatestDate(appData.miles)} / LSP ${getLatestDate(appData.lsp)}`);
-            safeSetText('data-airport-check', unknown.length ? `未登録：${unknown.slice(0, 3).join('、')}${unknown.length > 3 ? ' ほか' : ''}` : '登録済み空港のみ');
+            safeSetText('data-last-dates', lastDates);
+            safeSetText('data-airport-check', airportCheck);
+            safeSetText('settings-data-source', appData.meta.sourceFile || 'data/20251229_LSP管理.xlsx');
+            safeSetText('settings-read-time', formatTimestamp(appData.meta.lastReadAt));
+            safeSetText('settings-last-dates', lastDates);
+            safeSetText('settings-airport-check', airportCheck);
+        }
+
+        function updateSettingsPage() {
+            populateTargetYearSelector();
+            setGoalInputs();
+            renderDataStatus(getTargetYear());
         }
 
         window.onload = async () => { setGoalInputs(); populateTargetYearSelector(); await syncFromUrl(); };
@@ -1064,6 +1140,8 @@
             sel.classList.remove('hidden');
         }
 
+        function returnToDashboard() { switchTab('dashboard'); }
+
         function switchTab(tabId) {
             currentTab = tabId;
             const monthSel = document.getElementById('monthSelector');
@@ -1093,10 +1171,12 @@
 
             document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.tab === tabId));
             document.querySelectorAll('.mobile-nav-item').forEach(el => el.classList.toggle('active', el.dataset.tabMob === tabId));
-            document.getElementById('tabTitle').innerText = { 'dashboard': 'ダッシュボード', 'miles': 'マイル管理', 'lsp': 'LSP管理', 'flights': 'フライト管理' }[tabId];
+            document.getElementById('tabTitle').innerText = { 'dashboard': 'ダッシュボード', 'miles': 'マイル管理', 'lsp': 'LSP管理', 'flights': 'フライト管理', 'settings': '設定' }[tabId];
             
             document.getElementById('tab-dashboard').classList.toggle('active', tabId === 'dashboard');
-            document.getElementById('tab-detail').classList.toggle('active', tabId !== 'dashboard');
+            document.getElementById('tab-settings').classList.toggle('active', tabId === 'settings');
+            document.getElementById('tab-detail').classList.toggle('active', tabId !== 'dashboard' && tabId !== 'settings');
+            document.getElementById('headerBackBtn')?.classList.toggle('hidden', tabId === 'dashboard');
             document.getElementById('flightSummarySection').classList.toggle('hidden', tabId !== 'flights');
             document.getElementById('pieChartContainer').classList.toggle('hidden', tabId === 'flights');
             document.getElementById('lineChartContainer').classList.toggle('lg:col-span-2', tabId === 'flights');
@@ -1271,6 +1351,7 @@
             safeSetText('stat-yearly-flights', appData.stats.yearlyFlights.toLocaleString());
             safeSetText('stat-excluded-flights', appData.stats.excludedFlights.toLocaleString());
 
+            if (currentTab === 'settings') { updateSettingsPage(); return; }
             if (currentTab === 'dashboard') updateDashboard();
             else {
                 const sVal = document.getElementById('chartFilterStart')?.value || '';
