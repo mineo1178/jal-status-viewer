@@ -1655,8 +1655,8 @@
             renderDashboardMonthDrilldown(targetYear, contextData, contextMetrics);
             renderGoalManagement(contextMetrics);
             renderAuditPanel(contextIssues, contextMetrics);
-            renderPieChart("milePieChart", contextData.miles.reduce((g, d) => { const c = categorizeMile(d.content); if(d.gain>0) g[c] = (g[c]||0)+d.gain; return g; }, {}), (label) => handleDashboardPieClick('miles', label));
-            renderPieChart("lspPieChart", contextData.lsp.reduce((g, d) => { g[d.ui_category] = (g[d.ui_category]||0)+d.points; return g; }, {}), (label) => handleDashboardPieClick('lsp', label));
+            renderPieChart("milePieChart", contextData.miles.reduce((g, d) => { const c = categorizeMile(d.content); if(d.gain>0) g[c] = (g[c]||0)+d.gain; return g; }, {}), (label) => handleDashboardPieClick('miles', label), null, (label) => getChartColorForCategory('miles', label));
+            renderPieChart("lspPieChart", contextData.lsp.reduce((g, d) => { g[d.ui_category] = (g[d.ui_category]||0)+d.points; return g; }, {}), (label) => handleDashboardPieClick('lsp', label), null, (label) => getChartColorForCategory('lsp', label));
         }
 
 
