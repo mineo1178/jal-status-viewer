@@ -246,22 +246,51 @@
             
             <!-- DASHBOARD TAB -->
             <div id="tab-dashboard" class="tab-content active space-y-6 md:space-y-8">
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-                    <div onclick="switchTab('miles')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-[#E10009] cursor-pointer">
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Miles</p>
+                <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 md:gap-6">
+                    <div onclick="openDashboardDrilldown('miles')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-[#E10009] cursor-pointer">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">保有マイル</p>
                         <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-miles" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">mile</span></div>
                     </div>
-                    <div onclick="switchTab('lsp')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-blue-500 cursor-pointer">
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total LSP</p>
+                    <div onclick="openDashboardDrilldown('lsp')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-blue-500 cursor-pointer">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">累計LSP</p>
                         <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-lsp" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">pts</span></div>
                     </div>
-                    <div onclick="switchTab('flights')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-orange-500 cursor-pointer">
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Yearly FOP</p>
+                    <div onclick="openDashboardDrilldown('flights')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-orange-500 cursor-pointer">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">年間FOP</p>
                         <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-fop" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">FOP</span></div>
                     </div>
-                    <div onclick="switchTab('flights')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-emerald-500 cursor-pointer">
+                    <div onclick="openDashboardDrilldown('flights')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-slate-500 cursor-pointer">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">実搭乗回数</p>
+                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-actual-flights" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">回</span></div>
+                    </div>
+                    <div onclick="openDashboardDrilldown('flights')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-emerald-500 cursor-pointer">
                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">加算対象搭乗回数</p>
                         <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-yearly-flights" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">回</span></div>
+                    </div>
+                    <div onclick="openDashboardDrilldown('flights')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-rose-500 cursor-pointer">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">加算対象外搭乗</p>
+                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-excluded-flights" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">回</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm p-4 md:p-5 border border-slate-100">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                        <div>
+                            <h3 class="font-black text-sm md:text-base text-slate-800 flex items-center gap-2"><i class="fa-solid fa-database text-slate-600"></i> データ状態</h3>
+                            <p class="text-[10px] font-bold text-slate-400 mt-1">読み込み元・対象年・未登録空港を確認</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 text-[10px] font-bold text-slate-500">
+                            <label class="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">対象年
+                                <select id="targetYearSelector" onchange="setTargetYear(this.value)" class="bg-white border-slate-200 text-slate-700"></select>
+                            </label>
+                            <span class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">最終読込：<b id="data-read-time" class="text-slate-800">-</b></span>
+                            <span class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">未登録空港：<b id="data-unknown-airports" class="text-slate-800">0</b></span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-4 text-[10px] font-bold text-slate-500">
+                        <div class="rounded-xl bg-slate-50 p-3 border border-slate-100"><p class="text-[9px] font-black text-slate-400 uppercase">Source</p><p id="data-source-file" class="text-slate-800 mt-1 truncate">-</p></div>
+                        <div class="rounded-xl bg-slate-50 p-3 border border-slate-100"><p class="text-[9px] font-black text-slate-400 uppercase">Latest dates</p><p id="data-last-dates" class="text-slate-800 mt-1">-</p></div>
+                        <div class="rounded-xl bg-slate-50 p-3 border border-slate-100"><p class="text-[9px] font-black text-slate-400 uppercase">Airport check</p><p id="data-airport-check" class="text-slate-800 mt-1">-</p></div>
                     </div>
                 </div>
 
@@ -271,6 +300,62 @@
                         <span id="chart-main-title">ステータス進捗</span>
                     </h3>
                     <div class="h-64 md:h-80"><canvas id="annualTrendChart"></canvas></div>
+                    <div id="dashboardDrilldownPanel" class="mt-5 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
+                            <div>
+                                <h4 id="dashboardDrilldownTitle" class="text-sm font-black text-slate-800">月次ドリルダウン</h4>
+                                <p id="dashboardDrilldownSubTitle" class="text-[10px] font-bold text-slate-400 mt-1">グラフの棒または折れ線ポイントをクリックすると対象月に切り替わります。</p>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="clearDashboardMonthSelection()" class="text-[10px] font-black bg-white hover:bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200">年全体に戻す</button>
+                                <button id="dashboardDrilldownMileBtn" class="text-[10px] font-black bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg">マイル明細</button>
+                                <button id="dashboardDrilldownLspBtn" class="text-[10px] font-black bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg">LSP明細</button>
+                                <button id="dashboardDrilldownFlightBtn" class="text-[10px] font-black bg-slate-900 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg">フライト明細</button>
+                            </div>
+                        </div>
+                        <div id="dashboardDrilldownBody" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
+                    <div class="xl:col-span-2 bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100">
+                        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5">
+                            <div>
+                                <h3 class="font-black text-sm md:text-base text-slate-800 flex items-center gap-2"><i class="fa-solid fa-bullseye text-red-600"></i> 目標達成管理</h3>
+                                <p class="text-[10px] font-bold text-slate-400 mt-1">現在実績・年末ペース・予定便込みの着地見込みを分離表示</p>
+                            </div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px] font-bold text-slate-500">
+                                <label class="flex flex-col gap-1">FOP目標<input id="goal-fop" type="text" value="50000" class="w-full text-right"></label>
+                                <label class="flex flex-col gap-1">LSP目標<input id="goal-lsp" type="text" value="1500" class="w-full text-right"></label>
+                                <label class="flex flex-col gap-1">加算回数目標<input id="goal-eligible-flights" type="text" value="150" class="w-full text-right"></label>
+                                <label class="flex flex-col gap-1">実搭乗目標<input id="goal-actual-flights" type="text" value="150" class="w-full text-right"></label>
+                                <button onclick="saveGoalSettings()" class="col-span-2 md:col-span-4 bg-slate-900 hover:bg-slate-700 text-white rounded-lg px-3 py-2 transition-colors">目標値を保存</button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto rounded-xl border border-slate-100 no-scrollbar">
+                            <table class="w-full text-left border-collapse min-w-[900px]">
+                                <thead class="bg-slate-50 text-[10px] font-black text-slate-500 uppercase">
+                                    <tr><th class="p-3">指標</th><th class="p-3 text-right">現在</th><th class="p-3 text-right">目標</th><th class="p-3 text-right">残り</th><th class="p-3 text-right">達成率</th><th class="p-3 text-right">年末ペース予測</th><th class="p-3 text-right">予定反映後</th></tr>
+                                </thead>
+                                <tbody id="goalStatusBody" class="divide-y divide-slate-50 text-xs"></tbody>
+                            </table>
+                        </div>
+                        <p id="goalForecastNote" class="text-[10px] font-bold text-slate-400 mt-3 leading-relaxed"></p>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100">
+                        <h3 class="font-black text-sm md:text-base text-slate-800 flex items-center gap-2 mb-4"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> データ品質チェック</h3>
+                        <div class="grid grid-cols-3 gap-2 mb-4">
+                            <div class="rounded-xl bg-slate-50 p-3 text-center"><p class="text-[9px] font-black text-slate-400 uppercase">Issues</p><p id="audit-issue-count" class="text-2xl font-black text-slate-800">0</p></div>
+                            <div class="rounded-xl bg-slate-50 p-3 text-center"><p class="text-[9px] font-black text-slate-400 uppercase">Diff</p><p id="audit-diff-count" class="text-2xl font-black text-rose-600">0</p></div>
+                            <div class="rounded-xl bg-slate-50 p-3 text-center"><p class="text-[9px] font-black text-slate-400 uppercase">Future</p><p id="audit-future-count" class="text-2xl font-black text-blue-600">0</p></div>
+                        </div>
+                        <div class="max-h-[260px] overflow-y-auto rounded-xl border border-slate-100">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead class="sticky top-0 bg-slate-50 text-[10px] font-black text-slate-500"><tr><th class="p-2">重要度</th><th class="p-2">内容</th></tr></thead>
+                                <tbody id="auditIssueBody" class="divide-y divide-slate-50"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
@@ -301,6 +386,14 @@
                             <p class="text-sm text-slate-400 italic">予定はありません</p>
                         </div>
                     </div>
+                </div>
+
+                <div id="detailActiveFilterBar" class="hidden bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Active Filter</p>
+                        <p id="detailActiveFilterLabel" class="text-sm font-black text-slate-800 mt-1">全カテゴリ表示</p>
+                    </div>
+                    <button id="clearCategoryFilterTopBtn" onclick="clearDetailCategoryFilter()" class="text-[10px] font-black bg-slate-900 hover:bg-slate-700 text-white px-4 py-2 rounded-xl transition-colors w-full md:w-auto">選択解除</button>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8" id="analysisGrid">
@@ -447,28 +540,69 @@
                     </div>
 
                     <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100 hidden lg:col-span-2 flex flex-col" id="rankingSection">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="font-black text-sm md:text-base text-slate-800 flex items-center gap-2">
-                                <i class="fa-solid fa-ranking-star text-red-600"></i>
-                                区間搭乗ランキング <span class="text-[10px] font-normal text-slate-400 ml-1">(全期間・方向別)</span>
-                            </h3>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                            <div id="rankingChartContainer" class="transition-all duration-300 overflow-hidden relative" style="height: 256px;">
-                                <canvas id="rankingChartCombined"></canvas>
+                        <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start mb-6 gap-4">
+                            <div>
+                                <h3 class="font-black text-sm md:text-base text-slate-800 flex items-center gap-2">
+                                    <i class="fa-solid fa-ranking-star text-red-600"></i>
+                                    区間搭乗分析 <span id="routeRankingSubTitle" class="text-[10px] font-normal text-slate-400 ml-1">往復合算・地図連動</span>
+                                </h3>
+                                <p class="text-[10px] text-slate-400 font-bold mt-1">ランキングをクリックすると、地図上の該当区間を強調します。</p>
                             </div>
-                            <div class="border rounded-xl overflow-hidden shadow-sm">
+                            <div class="flex flex-wrap gap-2 items-end text-[10px] font-bold text-slate-500">
+                                <label class="flex flex-col gap-1">
+                                    表示期間
+                                    <select id="routeAnalysisPeriod" onchange="selectedRouteKey=null; updateUI()" class="border-slate-200">
+                                        <option value="all" selected>全期間</option>
+                                        <option value="year">今年</option>
+                                        <option value="6m">直近6か月</option>
+                                        <option value="3m">直近3か月</option>
+                                    </select>
+                                </label>
+                                <label class="flex flex-col gap-1">
+                                    ヒートマップ
+                                    <select id="routeHeatmapLimit" onchange="updateUI()" class="border-slate-200">
+                                        <option value="8" selected>上位8空港</option>
+                                        <option value="10">上位10空港</option>
+                                        <option value="12">上位12空港</option>
+                                    </select>
+                                </label>
+                                <button onclick="selectedRouteKey=null; updateUI()" class="h-[30px] px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-black border border-slate-200">
+                                    選択解除
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+                            <div class="xl:col-span-2">
+                                <div id="rankingChartContainer" class="transition-all duration-300 overflow-hidden relative" style="height: 320px;">
+                                    <canvas id="rankingChartCombined"></canvas>
+                                </div>
+                            </div>
+                            <div id="routeSelectedDetail" class="rounded-2xl border border-slate-100 bg-slate-50 p-4 min-h-[260px]">
+                                <p class="text-xs text-slate-400 italic">区間を選択すると詳細を表示します。</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 xl:grid-cols-5 gap-6 mt-6 items-start">
+                            <div class="xl:col-span-3 border rounded-xl overflow-hidden shadow-sm">
                                 <table class="w-full text-left border-collapse bg-white text-xs">
                                     <thead class="bg-slate-50 border-b">
                                         <tr>
-                                            <th class="p-3 font-bold text-slate-600 uppercase">区間 (搭乗実績)</th>
-                                            <th class="p-3 font-bold text-slate-600 text-right uppercase">実搭乗数</th>
+                                            <th class="p-3 font-bold text-slate-600 uppercase">区間</th>
+                                            <th class="p-3 font-bold text-slate-600 text-right uppercase">合計</th>
+                                            <th class="p-3 font-bold text-slate-600 text-right uppercase">往路/復路</th>
+                                            <th class="p-3 font-bold text-slate-600 text-right uppercase">最新</th>
                                         </tr>
                                     </thead>
                                     <tbody id="rankingTableBody" class="divide-y divide-slate-50">
-                                        <tr><td colspan="2" class="p-4 text-center text-slate-400 italic">データがありません</td></tr>
+                                        <tr><td colspan="4" class="p-4 text-center text-slate-400 italic">データがありません</td></tr>
                                     </tbody>
                                 </table>
+                            </div>
+                            <div class="xl:col-span-2 rounded-xl border border-slate-100 bg-white p-4 shadow-sm overflow-x-auto">
+                                <div class="flex justify-between items-center mb-3 gap-3">
+                                    <h4 class="font-black text-xs text-slate-800 flex items-center gap-2"><i class="fa-solid fa-table-cells text-red-600"></i> 区間ヒートマップ</h4>
+                                    <span id="routeHeatmapLegend" class="text-[9px] font-bold text-slate-400">濃いほど搭乗数が多い</span>
+                                </div>
+                                <div id="routeHeatmapContainer" class="min-w-[360px]"></div>
                             </div>
                         </div>
                         <div class="flex justify-end mt-4">
@@ -490,7 +624,8 @@
                                 <option value="points:asc" id="mob-sort-val-asc">獲得量 (少)</option>
                             </select>
                             <select id="monthSelector" onchange="updateUI()" class="flex-1 md:flex-none hidden bg-red-50 border-red-100 text-red-600 font-bold"></select>
-                            <select id="categorySelector" onchange="updateUI()" class="flex-1 md:flex-none font-bold"></select>
+                            <select id="categorySelector" onchange="handleCategorySelectorChange(this.value)" class="flex-1 md:flex-none font-bold"></select>
+                            <button id="clearCategoryFilterBtn" onclick="clearDetailCategoryFilter()" class="hidden text-[10px] font-black bg-slate-900 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg transition-colors">選択解除</button>
                         </div>
                     </div>
                     
@@ -530,8 +665,9 @@
         // --- State ---
         let appData = { 
             plans: [], lsp: [], miles: [], 
-            stats: { miles: 0, lsp: 0, fop: 0, yearlyFlights: 0, plannedFlights: 0 }, 
-            yearlyMonthly: { fop: Array(12).fill(0), fl: Array(12).fill(0), year: String(new Date().getFullYear()) } 
+            stats: { miles: 0, lsp: 0, fop: 0, yearlyFlights: 0, actualFlights: 0, excludedFlights: 0, plannedFlights: 0 }, 
+            yearlyMonthly: { fop: Array(12).fill(0), fl: Array(12).fill(0), year: String(new Date().getFullYear()) },
+            meta: { lastReadAt: null, sourceFile: 'data/20251229_LSP管理.xlsx', sheetNames: [] }
         };
         let currentTab = 'dashboard';
         let charts = {};
@@ -542,89 +678,94 @@
 
         function normalizeAirportName(name) {
             const s = String(name || '').trim();
-            if (s.includes('羽田') || s.includes('東京')) return 'HND';
-            if (s.includes('成田')) return 'NRT';
-            if (s.includes('伊丹') || s.includes('大阪')) return 'ITM';
-            if (s.includes('関西')) return 'KIX';
-            if (s.includes('福岡')) return 'FUK';
-            if (s.includes('那覇') || s.includes('沖縄')) return 'OKA';
-            if (s.includes('新千歳') || s.includes('札幌')) return 'CTS';
-            if (s.includes('青森')) return 'AOJ';
-            if (s.includes('三沢')) return 'MSJ';
-            if (s.includes('中部') || s.includes('名古屋')) return 'NGO';
-            if (s.includes('石垣')) return 'ISG';
-            if (s.includes('宮古')) return 'MMY';
-            if (s.includes('台北') || s.includes('桃園')) return 'TPE';
-            if (s.includes('ホノルル')) return 'HNL';
-            
-            if (s.includes('徳島')) return 'TKS';
-            if (s.includes('宮崎')) return 'KMI';
-            if (s.includes('与那国')) return 'OGN';
-            if (s.includes('多良間')) return 'TRA';
-            if (s.includes('奄美')) return 'ASJ';
-            if (s.includes('喜界')) return 'KKX';
-            if (s.includes('徳之島')) return 'TKN';
-            if (s.includes('沖永良部')) return 'OKE';
-            if (s.includes('高知')) return 'KCZ';
-            if (s.includes('松山')) return 'MYJ';
-            if (s.includes('小松')) return 'KMQ';
-            if (s.includes('久米島')) return 'UEO';
-            if (s.includes('鹿児島')) return 'KOJ';
-            if (s.includes('広島')) return 'HIJ';
-            if (s.includes('岡山')) return 'OKJ';
-            if (s.includes('函館')) return 'HKD';
-            if (s.includes('旭川')) return 'AKJ';
-            if (s.includes('熊本')) return 'KMJ';
-            if (s.includes('長崎')) return 'NGS';
-            
-            if (s.includes('高松')) return 'TAK';
-            if (s.includes('与論')) return 'RNJ';
-            if (s.includes('南大東')) return 'MMD';
-            if (s.includes('奥尻')) return 'OIR';
-            if (s.includes('根室中標津') || s.includes('中標津')) return 'SHB';
-            
-            return s.toUpperCase();
+            if (!s) return '';
+            const upper = s.toUpperCase().replace(/\s+/g, '');
+            if (airportDisplayNames[upper]) return upper;
+
+            // 頻出空港を中心に都度拡張する正規化マスタ。完全網羅ではなく、利用実績に応じて追加する。
+            const aliases = [
+                ['HND', ['羽田', '東京国際']], ['NRT', ['成田']], ['ITM', ['伊丹', '大阪国際']], ['KIX', ['関西']], ['FUK', ['福岡']], ['OKA', ['那覇', '沖縄']], ['CTS', ['新千歳', '札幌']],
+                ['AOJ', ['青森']], ['MSJ', ['三沢']], ['NGO', ['中部', '名古屋', 'セントレア']], ['ISG', ['石垣']], ['MMY', ['宮古']],
+                ['TKS', ['徳島']], ['KMI', ['宮崎']], ['OGN', ['与那国']], ['TRA', ['多良間']], ['ASJ', ['奄美']], ['KKX', ['喜界']], ['TKN', ['徳之島']], ['OKE', ['沖永良部']],
+                ['KCZ', ['高知']], ['MYJ', ['松山']], ['KMQ', ['小松']], ['UEO', ['久米島']], ['KOJ', ['鹿児島']], ['HIJ', ['広島']], ['OKJ', ['岡山']], ['HKD', ['函館']], ['AKJ', ['旭川']], ['KMJ', ['熊本']], ['NGS', ['長崎']], ['TAK', ['高松']], ['RNJ', ['与論']], ['MMD', ['南大東']], ['OIR', ['奥尻']], ['SHB', ['根室中標津', '中標津']],
+                // 台湾
+                ['TSA', ['台北松山', '松山空港']], ['TPE', ['台北桃園', '桃園', '台北']], ['KHH', ['高雄']], ['RMQ', ['台中']], ['TNN', ['台南']],
+                // 近距離海外・アジア主要空港
+                ['HKG', ['香港']], ['ICN', ['ソウル仁川', '仁川']], ['GMP', ['ソウル金浦', '金浦']], ['PUS', ['釜山', 'プサン']], ['SIN', ['シンガポール']], ['BKK', ['バンコク', 'スワンナプーム']], ['DMK', ['ドンムアン']], ['SGN', ['ホーチミン']], ['HAN', ['ハノイ']], ['DAD', ['ダナン']], ['KUL', ['クアラルンプール']], ['MNL', ['マニラ']], ['CEB', ['セブ']], ['GUM', ['グアム']],
+                ['PVG', ['上海浦東', '浦東']], ['SHA', ['上海虹橋', '虹橋']], ['PEK', ['北京首都']], ['PKX', ['北京大興', '大興']], ['CAN', ['広州']], ['SZX', ['深圳', '深セン']],
+                // ハワイ・北米・欧州・豪州の主要空港
+                ['HNL', ['ホノルル']], ['LAX', ['ロサンゼルス']], ['SFO', ['サンフランシスコ']], ['SEA', ['シアトル']], ['JFK', ['ニューヨークJFK', 'JFK', 'ニューヨーク']], ['DFW', ['ダラス']], ['ORD', ['シカゴ']], ['YVR', ['バンクーバー']], ['SYD', ['シドニー']], ['MEL', ['メルボルン']], ['BNE', ['ブリスベン']], ['LHR', ['ロンドン', 'ヒースロー']], ['CDG', ['パリ', 'シャルルドゴール']], ['FRA', ['フランクフルト']]
+            ];
+            for (const [code, names] of aliases) {
+                if (names.some(n => s.includes(n) || upper.includes(String(n).toUpperCase()))) return code;
+            }
+            return upper;
+        }
+
+        const airportDisplayNames = {
+            "HND": "羽田", "NRT": "成田", "ITM": "伊丹", "KIX": "関西", "FUK": "福岡", "OKA": "那覇", "CTS": "新千歳",
+            "AOJ": "青森", "MSJ": "三沢", "NGO": "中部", "ISG": "石垣", "MMY": "宮古",
+            "TKS": "徳島", "KMI": "宮崎", "OGN": "与那国", "TRA": "多良間", "ASJ": "奄美", "KKX": "喜界", "TKN": "徳之島",
+            "OKE": "沖永良部", "KCZ": "高知", "MYJ": "松山", "KMQ": "小松", "UEO": "久米島", "KOJ": "鹿児島",
+            "HIJ": "広島", "OKJ": "岡山", "HKD": "函館", "AKJ": "旭川", "KMJ": "熊本", "NGS": "長崎",
+            "TAK": "高松", "RNJ": "与論", "MMD": "南大東", "OIR": "奥尻", "SHB": "中標津",
+            "TPE": "台北桃園", "TSA": "台北松山", "KHH": "高雄", "RMQ": "台中", "TNN": "台南",
+            "HKG": "香港", "ICN": "ソウル仁川", "GMP": "ソウル金浦", "PUS": "釜山", "SIN": "シンガポール", "BKK": "バンコク", "DMK": "ドンムアン",
+            "SGN": "ホーチミン", "HAN": "ハノイ", "DAD": "ダナン", "KUL": "クアラルンプール", "MNL": "マニラ", "CEB": "セブ", "GUM": "グアム",
+            "PVG": "上海浦東", "SHA": "上海虹橋", "PEK": "北京首都", "PKX": "北京大興", "CAN": "広州", "SZX": "深圳",
+            "HNL": "ホノルル", "LAX": "ロサンゼルス", "SFO": "サンフランシスコ", "SEA": "シアトル", "JFK": "ニューヨークJFK", "DFW": "ダラス", "ORD": "シカゴ", "YVR": "バンクーバー",
+            "SYD": "シドニー", "MEL": "メルボルン", "BNE": "ブリスベン", "LHR": "ロンドン・ヒースロー", "CDG": "パリCDG", "FRA": "フランクフルト"
+        };
+
+        const airportCountries = {
+            "HND":"日本", "NRT":"日本", "ITM":"日本", "KIX":"日本", "FUK":"日本", "OKA":"日本", "CTS":"日本", "AOJ":"日本", "MSJ":"日本", "NGO":"日本", "ISG":"日本", "MMY":"日本", "TKS":"日本", "KMI":"日本", "OGN":"日本", "TRA":"日本", "ASJ":"日本", "KKX":"日本", "TKN":"日本", "OKE":"日本", "KCZ":"日本", "MYJ":"日本", "KMQ":"日本", "UEO":"日本", "KOJ":"日本", "HIJ":"日本", "OKJ":"日本", "HKD":"日本", "AKJ":"日本", "KMJ":"日本", "NGS":"日本", "TAK":"日本", "RNJ":"日本", "MMD":"日本", "OIR":"日本", "SHB":"日本",
+            "TPE":"台湾", "TSA":"台湾", "KHH":"台湾", "RMQ":"台湾", "TNN":"台湾", "HKG":"香港", "ICN":"韓国", "GMP":"韓国", "PUS":"韓国", "SIN":"シンガポール", "BKK":"タイ", "DMK":"タイ", "SGN":"ベトナム", "HAN":"ベトナム", "DAD":"ベトナム", "KUL":"マレーシア", "MNL":"フィリピン", "CEB":"フィリピン", "GUM":"グアム", "PVG":"中国", "SHA":"中国", "PEK":"中国", "PKX":"中国", "CAN":"中国", "SZX":"中国", "HNL":"米国", "LAX":"米国", "SFO":"米国", "SEA":"米国", "JFK":"米国", "DFW":"米国", "ORD":"米国", "YVR":"カナダ", "SYD":"オーストラリア", "MEL":"オーストラリア", "BNE":"オーストラリア", "LHR":"英国", "CDG":"フランス", "FRA":"ドイツ"
+        };
+
+        function getAirportDisplayName(nameOrCode) {
+            const raw = String(nameOrCode || '').trim();
+            if (!raw) return '';
+            const code = normalizeAirportName(raw);
+            if (airportDisplayNames[code]) return airportDisplayNames[code];
+            return raw.replace(/空港$/,'');
+        }
+
+        function getAirportDisplayNameWithCode(nameOrCode) {
+            const raw = String(nameOrCode || '').trim();
+            if (!raw) return '';
+            const code = normalizeAirportName(raw);
+            const name = airportDisplayNames[code] || raw.replace(/空港$/,'');
+            return airportDisplayNames[code] ? `${name} (${code})` : name;
+        }
+
+        function getAirportCountry(nameOrCode) {
+            const code = normalizeAirportName(nameOrCode);
+            return airportCountries[code] || '';
+        }
+
+        function isKnownAirport(nameOrCode) {
+            const code = normalizeAirportName(nameOrCode);
+            return Boolean(airportDisplayNames[code] && airportCoords[code]);
+        }
+
+        function isInternationalRoute(from, to) {
+            const fromCountry = getAirportCountry(from);
+            const toCountry = getAirportCountry(to);
+            if (!fromCountry || !toCountry) return false;
+            return fromCountry !== '日本' || toCountry !== '日本';
         }
 
         const airportCoords = {
-            "HND": [35.549393, 139.779839],
-            "NRT": [35.771987, 140.392850],
-            "ITM": [34.785500, 135.438004],
-            "KIX": [34.432002, 135.230394],
-            "FUK": [33.585899, 130.450993],
-            "OKA": [26.195814, 127.645869],
-            "CTS": [42.775200, 141.692283],
-            "AOJ": [40.733333, 140.691667],
-            "MSJ": [40.704444, 141.368333],
-            "NGO": [34.858333, 136.805278],
-            "ISG": [24.396389, 124.245000],
-            "MMY": [24.782778, 125.280000],
-            "TPE": [25.077731, 121.232822],
-            "HNL": [21.318681, -157.922428],
-            "TKS": [34.1328, 134.6064],
-            "KMI": [31.8772, 131.4486],
-            "OGN": [24.4681, 122.9772],
-            "TRA": [24.6539, 124.6942],
-            "ASJ": [28.4306, 129.7125],
-            "KKX": [28.3192, 129.9281],
-            "TKN": [27.8361, 128.8814],
-            "OKE": [27.4258, 128.6014],
-            "KCZ": [33.5461, 133.6694],
-            "MYJ": [33.8272, 132.7000],
-            "KMQ": [36.3939, 136.4069],
-            "UEO": [26.3636, 126.7125],
-            "KOJ": [31.8033, 130.7189],
-            "HIJ": [34.4397, 132.9189],
-            "OKJ": [34.7578, 133.8553],
-            "HKD": [41.7700, 140.8222],
-            "AKJ": [43.6708, 142.4475],
-            "KMJ": [32.8372, 130.8550],
-            "NGS": [32.9169, 129.9136],
-            "TAK": [34.2142, 134.0156],
-            "RNJ": [27.0440, 128.4015],
-            "MMD": [25.8465, 131.2635],
-            "OIR": [42.0717, 139.4329],
-            "SHB": [43.5775, 144.9600]
+            "HND": [35.549393, 139.779839], "NRT": [35.771987, 140.392850], "ITM": [34.785500, 135.438004], "KIX": [34.432002, 135.230394], "FUK": [33.585899, 130.450993], "OKA": [26.195814, 127.645869], "CTS": [42.775200, 141.692283],
+            "AOJ": [40.733333, 140.691667], "MSJ": [40.704444, 141.368333], "NGO": [34.858333, 136.805278], "ISG": [24.396389, 124.245000], "MMY": [24.782778, 125.280000],
+            "TKS": [34.1328, 134.6064], "KMI": [31.8772, 131.4486], "OGN": [24.4681, 122.9772], "TRA": [24.6539, 124.6942], "ASJ": [28.4306, 129.7125], "KKX": [28.3192, 129.9281], "TKN": [27.8361, 128.8814], "OKE": [27.4258, 128.6014],
+            "KCZ": [33.5461, 133.6694], "MYJ": [33.8272, 132.7000], "KMQ": [36.3939, 136.4069], "UEO": [26.3636, 126.7125], "KOJ": [31.8033, 130.7189], "HIJ": [34.4397, 132.9189], "OKJ": [34.7578, 133.8553], "HKD": [41.7700, 140.8222], "AKJ": [43.6708, 142.4475], "KMJ": [32.8372, 130.8550], "NGS": [32.9169, 129.9136], "TAK": [34.2142, 134.0156], "RNJ": [27.0440, 128.4015], "MMD": [25.8465, 131.2635], "OIR": [42.0717, 139.4329], "SHB": [43.5775, 144.9600],
+            "TPE": [25.077731, 121.232822], "TSA": [25.069722, 121.552500], "KHH": [22.577094, 120.350006], "RMQ": [24.2647, 120.6206], "TNN": [22.950361, 120.205778],
+            "HKG": [22.3080, 113.9185], "ICN": [37.4602, 126.4407], "GMP": [37.5583, 126.7906], "PUS": [35.1795, 128.9382], "SIN": [1.3644, 103.9915], "BKK": [13.6900, 100.7501], "DMK": [13.9126, 100.6068],
+            "SGN": [10.8188, 106.6519], "HAN": [21.2187, 105.8072], "DAD": [16.0439, 108.1990], "KUL": [2.7456, 101.7072], "MNL": [14.5086, 121.0194], "CEB": [10.3075, 123.9794], "GUM": [13.4839, 144.7973],
+            "PVG": [31.1443, 121.8083], "SHA": [31.1979, 121.3363], "PEK": [40.0799, 116.6031], "PKX": [39.5098, 116.4105], "CAN": [23.3924, 113.2988], "SZX": [22.6393, 113.8107],
+            "HNL": [21.318681, -157.922428], "LAX": [33.9416, -118.4085], "SFO": [37.6213, -122.3790], "SEA": [47.4502, -122.3088], "JFK": [40.6413, -73.7781], "DFW": [32.8998, -97.0403], "ORD": [41.9742, -87.9073], "YVR": [49.1967, -123.1815],
+            "SYD": [-33.9399, 151.1753], "MEL": [-37.6690, 144.8410], "BNE": [-27.3842, 153.1175], "LHR": [51.4700, -0.4543], "CDG": [49.0097, 2.5479], "FRA": [50.0379, 8.5622]
         };
 
         function getAirportCoords(name) {
@@ -634,6 +775,11 @@
 
         let flightMap = null;
         let flightLayerGroup = null;
+        let selectedRouteKey = null;
+        let selectedDashboardMonth = null;
+        let selectedDashboardSlice = null;
+        // マイル/LSP/フライトのフィルタ状態は分離する。共有すると別タブにフィルタが漏れる。
+        let detailCategoryFilters = { miles: 'all', lsp: 'all', flights: 'all' };
 
         const EXCEL_URL = "https://raw.githubusercontent.com/mineo1178/jal-status-viewer/main/data/20251229_LSP%E7%AE%A1%E7%90%86.xlsx";
 
@@ -690,6 +836,67 @@
             return isNaN(h) || isNaN(m) ? "" : h + "時" + String(m).padStart(2, '0') + "分";
         }
 
+        const DEFAULT_GOALS = { fop: 50000, lsp: 1500, eligibleFlights: 150, actualFlights: 150 };
+
+        function getGoalSettings() {
+            try { return { ...DEFAULT_GOALS, ...(JSON.parse(localStorage.getItem('jalGoalSettings') || '{}')) }; }
+            catch (_) { return { ...DEFAULT_GOALS }; }
+        }
+
+        function setGoalInputs() {
+            const g = getGoalSettings();
+            const map = { 'goal-fop': g.fop, 'goal-lsp': g.lsp, 'goal-eligible-flights': g.eligibleFlights, 'goal-actual-flights': g.actualFlights };
+            Object.entries(map).forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.value = Number(val || 0).toLocaleString(); });
+        }
+
+        function readGoalNumber(id, fallback) { const el = document.getElementById(id); return safeParseInt(el ? el.value : fallback) || fallback; }
+
+        function saveGoalSettings() {
+            const goals = {
+                fop: readGoalNumber('goal-fop', DEFAULT_GOALS.fop),
+                lsp: readGoalNumber('goal-lsp', DEFAULT_GOALS.lsp),
+                eligibleFlights: readGoalNumber('goal-eligible-flights', DEFAULT_GOALS.eligibleFlights),
+                actualFlights: readGoalNumber('goal-actual-flights', DEFAULT_GOALS.actualFlights)
+            };
+            localStorage.setItem('jalGoalSettings', JSON.stringify(goals));
+            setGoalInputs();
+            updateUI();
+        }
+
+        function parseEligibilityFlag(val) {
+            if (val === undefined || val === null || String(val).trim() === '') return null;
+            const s = String(val).replace(/[\s\u00A0]/g, '').toLowerCase();
+            if (s.match(/対象外|特典|加算なし|不可|なし|×|✕|false|no|0/)) return false;
+            if (s.match(/対象|加算|可|あり|○|〇|true|yes|1/)) return true;
+            return null;
+        }
+
+        function formatValue(v, suffix = '') { const n = Math.round(Number(v || 0)); return n.toLocaleString() + suffix; }
+
+        function getYearProgress(targetYear) {
+            const now = new Date();
+            const year = Number(targetYear);
+            if (now.getFullYear() !== year) return 1;
+            const start = new Date(year, 0, 1);
+            const end = new Date(year + 1, 0, 1);
+            return Math.max(0.01, Math.min(1, (now - start) / (end - start)));
+        }
+
+        function getYearProgressAt(targetYear, asOfDate = null) {
+            const year = Number(targetYear);
+            const d = asOfDate ? new Date(asOfDate) : new Date();
+            if (d.getFullYear() !== year) return d.getFullYear() > year ? 1 : 0.01;
+            const start = new Date(year, 0, 1);
+            const end = new Date(year + 1, 0, 1);
+            return Math.max(0.01, Math.min(1, (d - start) / (end - start)));
+        }
+
+        function projectAnnual(current, targetYear, asOfDate = null) { return Math.round((Number(current || 0)) / getYearProgressAt(targetYear, asOfDate)); }
+
+        function getFlightCode(p) { return String((p.airline || '') + (p.flightNo || '')).replace(/[\s\u00A0]/g, '').toUpperCase(); }
+
+        function getDateFlightKey(p) { return [p.date, getFlightCode(p), normalizeAirportName(p.from), normalizeAirportName(p.to)].join('|'); }
+
         function getDayOfWeek(dateStr) {
             if(!dateStr) return "";
             const days = ["日", "月", "火", "水", "木", "金", "土"];
@@ -709,7 +916,72 @@
             return data.filter(d => d.date >= limitStr);
         }
 
-        window.onload = async () => { await syncFromUrl(); };
+        function getAvailableYears() {
+            const years = new Set();
+            [...appData.plans, ...appData.miles, ...appData.lsp].forEach(i => { if (i.date && /^\d{4}/.test(i.date)) years.add(i.date.substring(0, 4)); });
+            if (years.size === 0) years.add(String(new Date().getFullYear()));
+            return Array.from(years).sort((a,b) => b.localeCompare(a));
+        }
+
+        function getTargetYear() {
+            const selector = document.getElementById('targetYearSelector');
+            const stored = localStorage.getItem('jalTargetYear');
+            const years = getAvailableYears();
+            const fallback = years.includes(String(new Date().getFullYear())) ? String(new Date().getFullYear()) : years[0];
+            if (selector && selector.value) return selector.value;
+            return years.includes(stored) ? stored : fallback;
+        }
+
+        function setTargetYear(year) {
+            if (year) localStorage.setItem('jalTargetYear', String(year));
+            selectedDashboardMonth = null;
+            selectedDashboardSlice = null;
+            updateUI();
+        }
+
+        function populateTargetYearSelector() {
+            const selector = document.getElementById('targetYearSelector');
+            if (!selector) return;
+            const years = getAvailableYears();
+            const selected = getTargetYear();
+            selector.innerHTML = years.map(y => `<option value="${y}" ${y === selected ? 'selected' : ''}>${y}年</option>`).join('');
+            if (years.includes(selected)) selector.value = selected;
+        }
+
+        function formatTimestamp(d) {
+            if (!d) return '-';
+            const dt = d instanceof Date ? d : new Date(d);
+            if (isNaN(dt.getTime())) return '-';
+            return dt.toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        }
+
+        function getLatestDate(list) {
+            const dates = list.map(i => i.date).filter(Boolean).sort();
+            return dates.length ? dates[dates.length - 1] : '-';
+        }
+
+        function getUnknownAirports(plans = appData.plans) {
+            const unknown = new Set();
+            plans.forEach(p => {
+                [['出発地', p.from], ['到着地', p.to]].forEach(([_, val]) => {
+                    if (!val) return;
+                    const code = normalizeAirportName(val);
+                    if (!airportCoords[code]) unknown.add(getAirportDisplayNameWithCode(val));
+                });
+            });
+            return Array.from(unknown).sort();
+        }
+
+        function renderDataStatus(targetYear) {
+            const unknown = getUnknownAirports(appData.plans.filter(p => !targetYear || p.date.startsWith(targetYear)));
+            safeSetText('data-source-file', appData.meta.sourceFile || 'data/20251229_LSP管理.xlsx');
+            safeSetText('data-read-time', formatTimestamp(appData.meta.lastReadAt));
+            safeSetText('data-unknown-airports', unknown.length.toLocaleString());
+            safeSetText('data-last-dates', `計画 ${getLatestDate(appData.plans)} / マイル ${getLatestDate(appData.miles)} / LSP ${getLatestDate(appData.lsp)}`);
+            safeSetText('data-airport-check', unknown.length ? `未登録：${unknown.slice(0, 3).join('、')}${unknown.length > 3 ? ' ほか' : ''}` : '登録済み空港のみ');
+        }
+
+        window.onload = async () => { setGoalInputs(); populateTargetYearSelector(); await syncFromUrl(); };
 
         async function syncFromUrl() {
             const overlay = document.getElementById('loading-overlay');
@@ -722,6 +994,9 @@
                 
                 appData.lsp = []; appData.miles = []; appData.plans = [];
                 wb.SheetNames.forEach(name => processRows(name, XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 })));
+                appData.meta.lastReadAt = new Date();
+                appData.meta.sheetNames = wb.SheetNames;
+                populateTargetYearSelector();
                 
                 document.getElementById('welcome-message')?.classList.add('hidden');
                 updateUI();
@@ -885,6 +1160,10 @@
                 const dIdx = col(['日付', '年月日']), frIdx = col(['出発地', 'from']), sIdx = col(['結果', '状態', 'status']), pIdx = col(['価格', '料金', '運賃']);
                 const airlineIdx = col(['運航会社']), flightNoIdx = col(['便名']);
                 const toIdx = col(['到着地', 'to']), depTimeIdx = col(['出発時刻']), arrTimeIdx = col(['到着時刻']);
+                // 第2弾デモ用の任意列。列が無い場合は0/未設定で扱う。
+                const expFopIdx = col(['予定fop', '見込fop', '想定fop', '予定flyon', '見込flyon']);
+                const expLspIdx = col(['予定lsp', '見込lsp', '想定lsp']);
+                const eligibleIdx = col(['加算対象', '搭乗回数対象', '対象外', '特典航空券', '特典']);
 
                 appData.plans = rows.slice(idx + 1).filter(r => r && (r[dIdx] || r[frIdx])).map(r => {
                     let st = String(r[sIdx] || '予定').trim();
@@ -893,7 +1172,10 @@
                         date: parseDate(r[dIdx]), airline: r[airlineIdx] || "", flightNo: r[flightNoIdx] || "", 
                         from: r[frIdx] || "", to: r[toIdx] || "", 
                         depTime: formatSimpleTime(r[depTimeIdx]), arrTime: formatSimpleTime(r[arrTimeIdx]), 
-                        status: st, fare: parseFloat(String(r[pIdx] || 0).replace(/,/g, '')) || 0 
+                        status: st, fare: parseFloat(String(r[pIdx] || 0).replace(/,/g, '')) || 0,
+                        expectedFop: safeParseInt(r[expFopIdx]),
+                        expectedLsp: safeParseInt(r[expLspIdx]),
+                        eligibleFlag: parseEligibilityFlag(r[eligibleIdx])
                     };
                 }).filter(i => i.date !== "");
             }
@@ -925,8 +1207,8 @@
 
         function updateUI() {
             const todayStr = new Date().toISOString().split('T')[0];
-            // 「今年1月から」の実績として、カレンダー年で集計する。
-            const targetYear = String(new Date().getFullYear()); 
+            // 対象年は画面上で切替可能。デフォルトは現在年。
+            const targetYear = getTargetYear(); 
             appData.yearlyMonthly.year = targetYear;
             safeSetText('chart-main-title', `ステータス進捗 (${targetYear}年実績)`);
 
@@ -967,17 +1249,25 @@
                 appData.stats.lsp = sl[0].total;
             }
             appData.stats.plannedFlights = appData.plans.filter(p => p.status !== '済' && p.date >= todayStr).length;
+            const dashboardMetrics = buildDashboardMetrics(targetYear, yearlyPlans, yearlyMiles, todayStr);
+            appData.stats.actualFlights = dashboardMetrics.current.actualFlights;
+            appData.stats.excludedFlights = dashboardMetrics.excludedFlights;
+            appData.dashboardMetrics = dashboardMetrics;
+            appData.auditIssues = buildAuditIssues(targetYear, yearlyPlans, yearlyMiles, dashboardMetrics);
+            renderDataStatus(targetYear);
 
             safeSetText('stat-miles', appData.stats.miles.toLocaleString());
             safeSetText('stat-lsp', appData.stats.lsp.toLocaleString());
             safeSetText('stat-fop', appData.stats.fop.toLocaleString());
+            safeSetText('stat-actual-flights', appData.stats.actualFlights.toLocaleString());
             safeSetText('stat-yearly-flights', appData.stats.yearlyFlights.toLocaleString());
+            safeSetText('stat-excluded-flights', appData.stats.excludedFlights.toLocaleString());
 
             if (currentTab === 'dashboard') updateDashboard();
             else {
                 const sVal = document.getElementById('chartFilterStart')?.value || '';
                 const eVal = document.getElementById('chartFilterEnd')?.value || '';
-                const cat = document.getElementById('categorySelector')?.value || 'all';
+                const cat = getActiveDetailCategory();
                 const list = currentTab === 'miles' ? appData.miles : (currentTab === 'lsp' ? appData.lsp : appData.plans);
                 
                 // フライト管理タブは「データ明細」について、チャート用の日付フィルタを無視して全件参照
@@ -993,63 +1283,414 @@
                 if (monthFilter !== 'all') finalFiltered = finalFiltered.filter(i => i.date.startsWith(monthFilter));
                 if (cat !== 'all') {
                     if (currentTab === 'flights') finalFiltered = finalFiltered.filter(i => i.status === cat);
-                    else finalFiltered = finalFiltered.filter(i => i.ui_category === cat);
+                    else if (currentTab === 'miles') finalFiltered = finalFiltered.filter(i => categorizeMile(i.content) === cat);
+                    else if (currentTab === 'lsp') finalFiltered = finalFiltered.filter(i => i.ui_category === cat);
                 }
 
+                if (!['miles', 'lsp'].includes(currentTab)) setDetailCategoryUi('all');
                 if (currentTab === 'miles') updateMilesTab(finalFiltered, cat);
                 else if (currentTab === 'lsp') updateLSPTab(finalFiltered, cat);
                 else if (currentTab === 'flights') updateFlightsTab(finalFiltered, cat);
             }
         }
 
+        function buildDashboardMetrics(targetYear, yearlyPlans, yearlyMiles, todayStr, currentLspTotal = appData.stats.lsp, asOfDate = null) {
+            const goals = getGoalSettings();
+            const futurePlans = appData.plans.filter(p => p.date.startsWith(targetYear) && p.status !== '済' && p.date >= todayStr);
+            const current = {
+                actualFlights: yearlyPlans.length,
+                eligibleFlights: yearlyMiles.reduce((sum, m) => sum + (m.flightCount || 0), 0),
+                fop: yearlyMiles.reduce((sum, m) => sum + (m.fop || 0), 0),
+                lsp: currentLspTotal
+            };
+            const earnedEnd = asOfDate || `${targetYear}-12-31`;
+            const yearlyLspEarned = appData.lsp.filter(l => l.date && l.date.startsWith(targetYear) && l.date <= earnedEnd).reduce((sum, l) => sum + (l.points || 0), 0);
+            const lspYearStart = Math.max(0, current.lsp - yearlyLspEarned);
+            const future = {
+                actualFlights: futurePlans.length,
+                eligibleFlights: futurePlans.reduce((sum, p) => sum + (p.eligibleFlag === false ? 0 : 1), 0),
+                fop: futurePlans.reduce((sum, p) => sum + (p.expectedFop || 0), 0),
+                lsp: futurePlans.reduce((sum, p) => sum + (p.expectedLsp || 0), 0),
+                unknownEligible: futurePlans.filter(p => p.eligibleFlag === null).length,
+                expectedFopRows: futurePlans.filter(p => (p.expectedFop || 0) > 0).length,
+                expectedLspRows: futurePlans.filter(p => (p.expectedLsp || 0) > 0).length
+            };
+            const projected = {
+                actualFlights: projectAnnual(current.actualFlights, targetYear, asOfDate),
+                eligibleFlights: projectAnnual(current.eligibleFlights, targetYear, asOfDate),
+                fop: projectAnnual(current.fop, targetYear, asOfDate),
+                lsp: lspYearStart + projectAnnual(yearlyLspEarned, targetYear, asOfDate)
+            };
+            const planned = { actualFlights: current.actualFlights + future.actualFlights, eligibleFlights: current.eligibleFlights + future.eligibleFlights, fop: current.fop + future.fop, lsp: current.lsp + future.lsp };
+            const excludedFlights = Math.max(0, current.actualFlights - current.eligibleFlights);
+            return { goals, current, future, projected, planned, excludedFlights };
+        }
+
+        function renderGoalManagement(metrics) {
+            if (!metrics) return;
+            const rows = [
+                { label: '年間FOP', current: metrics.current.fop, target: metrics.goals.fop, projected: metrics.projected.fop, planned: metrics.planned.fop, suffix: ' FOP' },
+                { label: '累計LSP', current: metrics.current.lsp, target: metrics.goals.lsp, projected: metrics.projected.lsp, planned: metrics.planned.lsp, suffix: ' pts' },
+                { label: '加算対象搭乗回数', current: metrics.current.eligibleFlights, target: metrics.goals.eligibleFlights, projected: metrics.projected.eligibleFlights, planned: metrics.planned.eligibleFlights, suffix: ' 回' },
+                { label: '実搭乗回数', current: metrics.current.actualFlights, target: metrics.goals.actualFlights, projected: metrics.projected.actualFlights, planned: metrics.planned.actualFlights, suffix: ' 回' }
+            ];
+            safeSetHTML('goalStatusBody', rows.map(r => {
+                const remain = Math.max(0, r.target - r.current);
+                const rate = r.target > 0 ? Math.min(999, (r.current / r.target * 100)) : 0;
+                const cls = r.current >= r.target ? 'text-emerald-600' : (r.projected >= r.target || r.planned >= r.target ? 'text-blue-600' : 'text-red-600');
+                return `<tr class="hover:bg-slate-50 transition-colors"><td class="p-3 font-black text-slate-700">${r.label}</td><td class="p-3 text-right font-black text-slate-900">${formatValue(r.current, r.suffix)}</td><td class="p-3 text-right text-slate-500 font-bold">${formatValue(r.target, r.suffix)}</td><td class="p-3 text-right font-bold ${remain > 0 ? 'text-red-600' : 'text-emerald-600'}">${formatValue(remain, r.suffix)}</td><td class="p-3 text-right font-black ${cls}">${rate.toFixed(1)}%</td><td class="p-3 text-right font-bold text-slate-700">${formatValue(r.projected, r.suffix)}</td><td class="p-3 text-right font-black ${r.planned >= r.target ? 'text-emerald-600' : 'text-slate-700'}">${formatValue(r.planned, r.suffix)}</td></tr>`;
+            }).join(''));
+            const fopNote = metrics.future.expectedFopRows === 0 ? '予定FOP列が未入力のため、予定反映後FOPは実績値ベースです。' : `予定FOP入力済み：${metrics.future.expectedFopRows}件。`;
+            const lspNote = metrics.future.expectedLspRows === 0 ? '予定LSP列が未入力のため、予定反映後LSPは実績値ベースです。' : `予定LSP入力済み：${metrics.future.expectedLspRows}件。`;
+            const eligibleNote = metrics.future.unknownEligible > 0 ? `予定便${metrics.future.unknownEligible}件は加算対象列が未設定のため、暫定的に加算対象として見込んでいます。` : '予定便の加算対象フラグは設定済みです。';
+            safeSetText('goalForecastNote', `${fopNote} ${lspNote} ${eligibleNote}`);
+        }
+
+        function buildAuditIssues(targetYear, yearlyPlans, yearlyMiles, metrics) {
+            const issues = [];
+            const addIssue = (level, text) => issues.push({ level, text });
+            if (metrics.excludedFlights > 0) addIssue('高', `実搭乗 ${metrics.current.actualFlights}回に対し、加算対象搭乗回数は ${metrics.current.eligibleFlights}回。差分 ${metrics.excludedFlights}回があります。`);
+            const actualByDate = {};
+            yearlyPlans.forEach(p => actualByDate[p.date] = (actualByDate[p.date] || 0) + 1);
+            const eligibleByDate = {};
+            yearlyMiles.forEach(m => eligibleByDate[m.date] = (eligibleByDate[m.date] || 0) + (m.flightCount || 0));
+            Object.keys(actualByDate).sort().forEach(d => { const diff = actualByDate[d] - (eligibleByDate[d] || 0); if (diff > 0) addIssue('中', `${d}: 実搭乗 ${actualByDate[d]}回 / 加算対象 ${eligibleByDate[d] || 0}回。差分 ${diff}回。`); });
+            const unknownAirports = getUnknownAirports(appData.plans.filter(p => p.date && p.date.startsWith(targetYear)));
+            if (unknownAirports.length > 0) addIssue('中', `空港マスタ未登録：${unknownAirports.slice(0, 6).join('、')}${unknownAirports.length > 6 ? ' ほか' : ''}。地図・ヒートマップ表示から漏れる可能性があります。`);
+            const intlCount = yearlyPlans.filter(p => isInternationalRoute(p.from, p.to)).length;
+            if (intlCount > 0) addIssue('低', `${targetYear}年の国際線実搭乗が ${intlCount}便あります。国際線フィルタ・地図表示対象です。`);
+            const dup = {};
+            yearlyPlans.forEach(p => { const k = getDateFlightKey(p); dup[k] = (dup[k] || 0) + 1; });
+            Object.entries(dup).filter(([_, c]) => c > 1).slice(0, 5).forEach(([k, c]) => addIssue('中', `計画シートに重複候補があります：${k.replaceAll('|', ' / ')} が ${c}件。`));
+            yearlyMiles.filter(m => (m.fop || 0) > 0 && (m.flightCount || 0) === 0).slice(0, 5).forEach(m => addIssue('低', `${m.date}: FOPあり・搭乗回数0のマイル明細があります（${m.content || '内容なし'}）。`));
+            yearlyMiles.filter(m => (m.flightCount || 0) > 0 && (m.fop || 0) === 0).slice(0, 5).forEach(m => addIssue('低', `${m.date}: 搭乗回数あり・FOP0のマイル明細があります（${m.content || '内容なし'}）。`));
+            return issues;
+        }
+
+        function renderAuditPanel(issues, metrics) {
+            safeSetText('audit-issue-count', issues.length.toLocaleString());
+            safeSetText('audit-diff-count', metrics.excludedFlights.toLocaleString());
+            safeSetText('audit-future-count', metrics.future.actualFlights.toLocaleString());
+            if (issues.length === 0) { safeSetHTML('auditIssueBody', '<tr><td colspan="2" class="p-4 text-center text-emerald-600 font-bold">重大な差分はありません</td></tr>'); return; }
+            const badge = (lv) => lv === '高' ? 'bg-red-100 text-red-700' : (lv === '中' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500');
+            safeSetHTML('auditIssueBody', issues.slice(0, 20).map(i => `<tr class="hover:bg-slate-50"><td class="p-2 align-top"><span class="px-2 py-0.5 rounded-full text-[9px] font-black ${badge(i.level)}">${i.level}</span></td><td class="p-2 font-bold text-slate-700 leading-relaxed">${i.text}</td></tr>`).join(''));
+        }
+
+
+        function formatMonthLabel(monthStr) {
+            if (!monthStr || !/^\d{4}-\d{2}$/.test(monthStr)) return '-';
+            const [y, m] = monthStr.split('-');
+            return `${y}年${Number(m)}月`;
+        }
+
+        function getMonthBounds(monthStr) {
+            const [y, m] = String(monthStr || '').split('-').map(Number);
+            if (!y || !m) return { start: '', end: '' };
+            const last = new Date(y, m, 0).getDate();
+            return { start: `${y}-${String(m).padStart(2,'0')}-01`, end: `${y}-${String(m).padStart(2,'0')}-${String(last).padStart(2,'0')}` };
+        }
+
+        function getDashboardContext(targetYear, monthOverride = null) {
+            const month = monthOverride !== null ? monthOverride : selectedDashboardMonth;
+            const start = `${targetYear}-01-01`;
+            if (month && String(month).startsWith(targetYear)) {
+                const bounds = getMonthBounds(month);
+                return { mode: 'ytd', month, start, end: bounds.end, label: `${targetYear}年1月〜${Number(month.substring(5, 7))}月`, shortLabel: `${Number(month.substring(5, 7))}月まで` };
+            }
+            return { mode: 'year', month: null, start, end: `${targetYear}-12-31`, label: `${targetYear}年全体`, shortLabel: '年全体' };
+        }
+
+        function inDateRange(item, start, end) {
+            return item && item.date && (!start || item.date >= start) && (!end || item.date <= end);
+        }
+
+        function latestTotalAsOf(list, end, totalKey) {
+            const sorted = [...list].filter(i => i.date && (!end || i.date <= end)).sort((a,b) => b.date.localeCompare(a.date) || (b._idx || 0) - (a._idx || 0));
+            return sorted.length ? Number(sorted[0][totalKey] || 0) : 0;
+        }
+
+        function getDashboardContextData(targetYear, monthOverride = null) {
+            const ctx = getDashboardContext(targetYear, monthOverride);
+            return {
+                ctx,
+                miles: appData.miles.filter(m => m.date && m.date.startsWith(targetYear) && inDateRange(m, ctx.start, ctx.end)),
+                lsp: appData.lsp.filter(l => l.date && l.date.startsWith(targetYear) && inDateRange(l, ctx.start, ctx.end)),
+                plans: appData.plans.filter(p => p.date && p.date.startsWith(targetYear) && inDateRange(p, ctx.start, ctx.end)),
+                actualPlans: appData.plans.filter(p => p.date && p.date.startsWith(targetYear) && inDateRange(p, ctx.start, ctx.end) && p.status === '済'),
+                mileBalance: latestTotalAsOf(appData.miles, ctx.end, 'total'),
+                lspBalance: latestTotalAsOf(appData.lsp, ctx.end, 'total')
+            };
+        }
+
+        function setDashboardStatCards(data, metrics) {
+            safeSetText('stat-miles', Number(data.mileBalance || 0).toLocaleString());
+            safeSetText('stat-lsp', Number(data.lspBalance || 0).toLocaleString());
+            safeSetText('stat-fop', Number(metrics.current.fop || 0).toLocaleString());
+            safeSetText('stat-actual-flights', Number(metrics.current.actualFlights || 0).toLocaleString());
+            safeSetText('stat-yearly-flights', Number(metrics.current.eligibleFlights || 0).toLocaleString());
+            safeSetText('stat-excluded-flights', Number(metrics.excludedFlights || 0).toLocaleString());
+        }
+
+        function getDefaultDashboardMonth(targetYear) {
+            const months = new Set();
+            [...appData.miles, ...appData.lsp, ...appData.plans].forEach(i => {
+                if (i.date && i.date.startsWith(targetYear)) months.add(i.date.substring(0, 7));
+            });
+            const sorted = Array.from(months).sort();
+            if (sorted.length) return sorted[sorted.length - 1];
+            return `${targetYear}-01`;
+        }
+
+        function selectDashboardMonthByIndex(index) {
+            const targetYear = appData.yearlyMonthly.year || getTargetYear();
+            const i = Number(index);
+            if (isNaN(i) || i < 0 || i > 11) return;
+            selectedDashboardMonth = `${targetYear}-${String(i + 1).padStart(2, '0')}`;
+            selectedDashboardSlice = null;
+            updateUI();
+        }
+
+        function clearDashboardMonthSelection() {
+            selectedDashboardMonth = null;
+            selectedDashboardSlice = null;
+            updateUI();
+        }
+
+        function buildDashboardMonthMetrics(monthStr) {
+            const monthMiles = appData.miles.filter(m => m.date && m.date.startsWith(monthStr));
+            const monthLsp = appData.lsp.filter(l => l.date && l.date.startsWith(monthStr));
+            const monthPlans = appData.plans.filter(p => p.date && p.date.startsWith(monthStr));
+            const actual = monthPlans.filter(p => p.status === '済');
+            const future = monthPlans.filter(p => p.status !== '済');
+            const eligible = monthMiles.reduce((sum, m) => sum + (m.flightCount || 0), 0);
+            const fop = monthMiles.reduce((sum, m) => sum + (m.fop || 0), 0);
+            const mileGain = monthMiles.reduce((sum, m) => sum + Math.max(0, m.gain || 0), 0);
+            const lsp = monthLsp.reduce((sum, l) => sum + (l.points || 0), 0);
+            const fare = monthPlans.reduce((sum, p) => sum + (p.fare || 0), 0);
+            return { month: monthStr, monthMiles, monthLsp, monthPlans, actual, future, eligible, fop, mileGain, lsp, fare, excluded: Math.max(0, actual.length - eligible) };
+        }
+
+        function setDetailDateRange(monthStr) {
+            const { start, end } = getMonthBounds(monthStr);
+            setDetailDateRangeBounds(start, end);
+        }
+
+        function setDetailDateRangeBounds(start, end) {
+            const sInp = document.getElementById('chartFilterStart');
+            const eInp = document.getElementById('chartFilterEnd');
+            if (sInp && eInp) { sInp.value = start; eInp.value = end; sInp.disabled = false; eInp.disabled = false; }
+            isAllDisplayMode = false;
+            const allBtn = document.getElementById('allDisplayBtn');
+            if (allBtn) allBtn.classList.remove('bg-slate-800', 'text-white');
+        }
+
+        function openDashboardDrilldown(tabId, monthStr = null, category = 'all') {
+            const targetYear = appData.yearlyMonthly.year || getTargetYear();
+            const ctx = getDashboardContext(targetYear, monthStr === null ? selectedDashboardMonth : monthStr);
+            if (['miles', 'lsp', 'flights'].includes(tabId)) {
+                detailCategoryFilters[tabId] = category || 'all';
+            }
+            switchTab(tabId);
+            setTimeout(() => {
+                setDetailDateRangeBounds(ctx.start, ctx.end);
+                if (tabId === 'flights') {
+                    populateMonthSelector(appData.plans);
+                    const monthSel = document.getElementById('monthSelector');
+                    if (monthSel) { monthSel.classList.remove('hidden'); monthSel.value = 'all'; }
+                }
+                const catSel = document.getElementById('categorySelector');
+                if (catSel) catSel.value = detailCategoryFilters[tabId] || 'all';
+                updateUI();
+            }, 0);
+        }
+
+        function handleDashboardPieClick(tabId, label) {
+            selectedDashboardSlice = { tabId, label };
+            openDashboardDrilldown(tabId, selectedDashboardMonth, label);
+        }
+
+        function renderDashboardMonthDrilldown(targetYear, data, metrics) {
+            const ctx = data.ctx;
+            safeSetText('dashboardDrilldownTitle', `${ctx.label} のダッシュボード表示`);
+            safeSetText('dashboardDrilldownSubTitle', ctx.mode === 'ytd' ? 'ステータス進捗グラフで選択した月までの累計に、カード・円グラフ・目標管理を連動しています。' : '年全体の表示です。グラフの月をクリックすると、その月までの累計表示に切り替わります。');
+            const mileGain = data.miles.reduce((sum, m) => sum + Math.max(0, m.gain || 0), 0);
+            const lspEarned = data.lsp.reduce((sum, l) => sum + (l.points || 0), 0);
+            const futureInContext = data.plans.filter(p => p.status !== '済').length;
+            const cell = (label, value, suffix, cls='text-slate-900') => `<div class="rounded-xl bg-white border border-slate-100 p-3"><p class="text-[9px] font-black text-slate-400 uppercase tracking-wider">${label}</p><p class="mt-1 text-lg font-black ${cls}">${Number(value || 0).toLocaleString()}<span class="ml-1 text-[10px] text-slate-400">${suffix}</span></p></div>`;
+            safeSetHTML('dashboardDrilldownBody', [
+                cell('期間FOP', metrics.current.fop, 'FOP', 'text-red-600'),
+                cell('加算対象搭乗', metrics.current.eligibleFlights, '回', 'text-emerald-600'),
+                cell('実搭乗', metrics.current.actualFlights, '回'),
+                cell('加算対象外', metrics.excludedFlights, '回', metrics.excludedFlights > 0 ? 'text-rose-600' : 'text-slate-500'),
+                cell('獲得マイル', mileGain, 'mile', 'text-red-600'),
+                cell('獲得LSP', lspEarned, 'pts', 'text-blue-600'),
+                cell('期間内予定便', futureInContext, '回', 'text-slate-700')
+            ].join(''));
+            const mileBtn = document.getElementById('dashboardDrilldownMileBtn');
+            const lspBtn = document.getElementById('dashboardDrilldownLspBtn');
+            const flightBtn = document.getElementById('dashboardDrilldownFlightBtn');
+            if (mileBtn) mileBtn.onclick = () => openDashboardDrilldown('miles');
+            if (lspBtn) lspBtn.onclick = () => openDashboardDrilldown('lsp');
+            if (flightBtn) flightBtn.onclick = () => openDashboardDrilldown('flights');
+        }
+
         function updateDashboard() {
             const now = new Date();
             const currentYear = now.getFullYear().toString();
             const currentMonthIdx = now.getMonth(); 
-            
+            const targetYear = appData.yearlyMonthly.year;
+            const contextData = getDashboardContextData(targetYear);
+            const contextMetrics = buildDashboardMetrics(targetYear, contextData.actualPlans, contextData.miles, new Date().toISOString().split('T')[0], contextData.lspBalance, contextData.ctx.end);
+            const contextIssues = buildAuditIssues(targetYear, contextData.actualPlans, contextData.miles, contextMetrics);
+            setDashboardStatCards(contextData, contextMetrics);
+            safeSetText('chart-main-title', `ステータス進捗 (${targetYear}年 / ${contextData.ctx.shortLabel})`);
+            safeSetText('dash-mile-pie-title', `獲得マイル内訳（${contextData.ctx.label}）`);
+            safeSetText('dash-lsp-pie-title', `LSP獲得内訳（${contextData.ctx.label}）`);
             let labels = Array.from({length:12}, (_,i)=>(i+1)+"月");
             let displayFop = [...appData.yearlyMonthly.fop];
             let displayFl = [...appData.yearlyMonthly.fl];
 
-            if (appData.yearlyMonthly.year === currentYear) {
+            if (targetYear === currentYear) {
                 for (let i = currentMonthIdx + 1; i < 12; i++) {
                     displayFop[i] = null;
                     displayFl[i] = null;
                 }
             }
 
-            renderMixedChart('annualTrendChart', labels, displayFop, displayFl);
-            renderPieChart("milePieChart", appData.miles.reduce((g, d) => { if(d.gain>0) g[categorizeMile(d.content)] = (g[categorizeMile(d.content)]||0)+d.gain; return g; }, {}));
-            renderPieChart("lspPieChart", appData.lsp.reduce((g, d) => { g[d.ui_category] = (g[d.ui_category]||0)+d.points; return g; }, {}));
+            const selectedIdx = selectedDashboardMonth && selectedDashboardMonth.startsWith(targetYear) ? Number(selectedDashboardMonth.substring(5, 7)) - 1 : -1;
+            renderMixedChart('annualTrendChart', labels, displayFop, displayFl, selectDashboardMonthByIndex, selectedIdx);
+            renderDashboardMonthDrilldown(targetYear, contextData, contextMetrics);
+            renderGoalManagement(contextMetrics);
+            renderAuditPanel(contextIssues, contextMetrics);
+            renderPieChart("milePieChart", contextData.miles.reduce((g, d) => { const c = categorizeMile(d.content); if(d.gain>0) g[c] = (g[c]||0)+d.gain; return g; }, {}), (label) => handleDashboardPieClick('miles', label));
+            renderPieChart("lspPieChart", contextData.lsp.reduce((g, d) => { g[d.ui_category] = (g[d.ui_category]||0)+d.points; return g; }, {}), (label) => handleDashboardPieClick('lsp', label));
+        }
+
+
+        function getDetailDateFilteredList(source) {
+            const sVal = document.getElementById('chartFilterStart')?.value || '';
+            const eVal = document.getElementById('chartFilterEnd')?.value || '';
+            return isAllDisplayMode ? source : source.filter(i => (!sVal || i.date >= sVal) && (!eVal || i.date <= eVal));
+        }
+
+        function getDetailCategoryOptions(tab = currentTab) {
+            if (tab === 'miles') return [...new Set(appData.miles.map(m => categorizeMile(m.content)))].sort();
+            if (tab === 'lsp') return [...new Set(appData.lsp.map(l => l.ui_category))].sort();
+            if (tab === 'flights') return [...new Set(appData.plans.map(p => p.status || '予定'))].sort();
+            return [];
+        }
+
+        function getActiveDetailCategory(tab = currentTab) {
+            const value = detailCategoryFilters[tab] || 'all';
+            if (value === 'all') return 'all';
+            return getDetailCategoryOptions(tab).includes(value) ? value : 'all';
+        }
+
+        function handleCategorySelectorChange(value) {
+            if (['miles', 'lsp', 'flights'].includes(currentTab)) {
+                detailCategoryFilters[currentTab] = value || 'all';
+            }
+            updateUI();
+        }
+
+        function applyDetailCategoryFilter(tab, value) {
+            if (!['miles', 'lsp', 'flights'].includes(tab)) return;
+            detailCategoryFilters[tab] = value || 'all';
+            if (currentTab !== tab) switchTab(tab);
+            else updateUI();
+        }
+
+        function setDetailCategoryUi(catFilter) {
+            const active = catFilter && catFilter !== 'all';
+            const bar = document.getElementById('detailActiveFilterBar');
+            const label = document.getElementById('detailActiveFilterLabel');
+            const bottomBtn = document.getElementById('clearCategoryFilterBtn');
+            if (bar) bar.classList.toggle('hidden', !active || !['miles', 'lsp'].includes(currentTab));
+            if (label) label.innerText = active ? `${currentTab === 'miles' ? 'マイル' : 'LSP'}カテゴリ：${catFilter}` : '全カテゴリ表示';
+            // 旧配置の解除ボタンは操作性が悪いため非表示固定。上部バーに集約する。
+            if (bottomBtn) bottomBtn.classList.add('hidden');
+        }
+
+        function clearDetailCategoryFilter() {
+            if (['miles', 'lsp', 'flights'].includes(currentTab)) {
+                detailCategoryFilters[currentTab] = 'all';
+            }
+            const sel = document.getElementById('categorySelector');
+            if (sel) sel.value = 'all';
+            selectedDashboardSlice = null;
+            updateUI();
+        }
+
+        function renderCategoryMonthlyTrendChart(id, list, valueKey, barLabel, cumulativeLabel, barColor, lineColor) {
+            const ctx = document.getElementById(id)?.getContext('2d');
+            if (!ctx) return;
+            destroyChart(id);
+            const sorted = [...list].filter(d => d.date).sort((a,b)=>a.date.localeCompare(b.date));
+            const months = [...new Set(sorted.map(d => d.date.substring(0, 7)))].sort();
+            let acc = 0;
+            const barData = months.map(m => sorted.filter(i => i.date.startsWith(m)).reduce((s, i) => s + Math.abs(i[valueKey] || 0), 0));
+            const lineData = barData.map(v => { acc += v; return acc; });
+            charts[id] = new Chart(ctx, {
+                data: { labels: months, datasets: [
+                    { type: 'bar', label: barLabel, data: barData, backgroundColor: barColor, borderRadius: 4, yAxisID: 'y1' },
+                    { type: 'line', label: cumulativeLabel, data: lineData, borderColor: lineColor, borderWidth: 2, fill: false, pointRadius: 2, tension: 0.1, yAxisID: 'y' }
+                ]},
+                options: { ...chartOptions(window.innerWidth < 768?'bottom':'right'), scales: { y: { position: 'left', beginAtZero: true }, y1: { position: 'right', grid: { display: false }, beginAtZero: true } } }
+            });
         }
 
         function updateMilesTab(data, catFilter) {
-            const allTimeBreakdown = appData.miles.reduce((g, d) => { const c = categorizeMile(d.content); g[c] = (g[c]||0)+d.gain; return g; }, {});
-            renderPieChart('detailPieChart', Object.fromEntries(Object.entries(allTimeBreakdown).filter(([_,v])=>v>0)));
-            safeSetText('totalEarnedValue', '保有マイル: ' + appData.stats.miles.toLocaleString() + " mile");
-            renderStackedBar('detailLineChart', data, 'gain');
-            renderMixedTrendChart('mileMixedChart', getFilteredTrendData(appData.miles, document.getElementById('mileTrendPeriod').value), 'gain', 'total', '獲得', '残高', '#1e293b', '#E10009');
+            const activeCategory = catFilter && catFilter !== 'all' ? catFilter : null;
+            const baseList = getDetailDateFilteredList(appData.miles);
+            const breakdown = baseList.reduce((g, d) => { const c = categorizeMile(d.content); if (d.gain > 0) g[c] = (g[c]||0)+d.gain; return g; }, {});
+            renderPieChart('detailPieChart', Object.fromEntries(Object.entries(breakdown).filter(([_,v])=>v>0)), (label) => {
+                applyDetailCategoryFilter('miles', label);
+            }, activeCategory);
+            setDetailCategoryUi(catFilter);
+            safeSetText('detailPieTitle', activeCategory ? `マイル内訳（${activeCategory} 選択中）` : 'マイル内訳');
+            safeSetText('detailLineTitle', activeCategory ? `${activeCategory} の月別実績` : 'マイル月別実績');
+            const selectedEarned = data.reduce((sum, m) => sum + Math.max(0, m.gain || 0), 0);
+            safeSetText('totalEarnedValue', activeCategory ? `${activeCategory}: ${selectedEarned.toLocaleString()} mile` : '保有マイル: ' + appData.stats.miles.toLocaleString() + " mile");
+            renderStackedBar('detailLineChart', activeCategory ? data : baseList, 'gain');
+            const trendSource = activeCategory ? appData.miles.filter(m => categorizeMile(m.content) === activeCategory) : appData.miles;
+            const trendFiltered = getFilteredTrendData(trendSource, document.getElementById('mileTrendPeriod').value);
+            if (activeCategory) renderCategoryMonthlyTrendChart('mileMixedChart', trendFiltered, 'gain', `${activeCategory} 獲得`, `${activeCategory} 累計`, '#1e293b', '#E10009');
+            else renderMixedTrendChart('mileMixedChart', trendFiltered, 'gain', 'total', '獲得', '残高', '#1e293b', '#E10009');
+            const mileTrendTitle = document.querySelector('#mileTrendSection h3');
+            if (mileTrendTitle) mileTrendTitle.innerText = activeCategory ? `${activeCategory} 推移` : 'マイル推移';
             const sel = document.getElementById('categorySelector');
-            if (sel) { const cats = ['all', ...new Set(appData.miles.map(m => categorizeMile(m.content)))].sort(); sel.innerHTML = cats.map(c => `<option value="${c}" ${c === catFilter ? 'selected' : ''}>${c === 'all' ? '全ての種類' : c}</option>`).join(''); }
+            if (sel) { const cats = ['all', ...getDetailCategoryOptions('miles')]; sel.innerHTML = cats.map(c => `<option value="${c}" ${c === (activeCategory || 'all') ? 'selected' : ''}>${c === 'all' ? '全ての種類' : c}</option>`).join(''); }
             const sorted = [...data].sort((a,b) => flightSortOrder === 'asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
             safeSetHTML('table-head', `<tr><th class="p-3">日付</th><th class="p-3">カテゴリ</th><th class="p-3">内容</th><th class="p-3 text-right">獲得</th><th class="p-3 text-right">残高</th></tr>`);
-            safeSetHTML('table-body', sorted.map(m => `<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 font-bold text-xs">${m.date}</td><td class="p-3 text-[10px] font-bold text-slate-500">${categorizeMile(m.content)}</td><td class="p-3 font-bold text-xs text-slate-700">${m.content}</td><td class="p-3 text-right ${m.gain<0?'text-slate-400':'text-red-500'} font-black text-xs">${m.gain.toLocaleString()}</td><td class="p-3 text-right font-bold text-xs text-slate-800">${m.total.toLocaleString()}</td></tr>`).join(''));
-            safeSetHTML('mobile-details-list', sorted.map(m => `<div class="details-card"><div class="flex justify-between items-start"><span class="text-[10px] font-black">${m.date}</span><span class="text-[9px] px-2 py-0.5 rounded bg-slate-100 font-bold">${categorizeMile(m.content)}</span></div><p class="text-xs font-bold">${m.content}</p><div class="flex justify-between pt-2 border-t"><p class="text-xs font-bold text-slate-800">${m.total.toLocaleString()}</p><p class="text-sm font-black ${m.gain<0?'text-slate-400':'text-red-500'}">${m.gain.toLocaleString()} mile</p></div></div>`).join(''));
+            safeSetHTML('table-body', sorted.length ? sorted.map(m => `<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 font-bold text-xs">${m.date}</td><td class="p-3 text-[10px] font-bold text-slate-500">${categorizeMile(m.content)}</td><td class="p-3 font-bold text-xs text-slate-700">${m.content}</td><td class="p-3 text-right ${m.gain<0?'text-slate-400':'text-red-500'} font-black text-xs">${m.gain.toLocaleString()}</td><td class="p-3 text-right font-bold text-xs text-slate-800">${m.total.toLocaleString()}</td></tr>`).join('') : `<tr><td colspan="5" class="p-6 text-center text-xs font-bold text-slate-400">該当するマイル明細がありません</td></tr>`);
+            safeSetHTML('mobile-details-list', sorted.length ? sorted.map(m => `<div class="details-card"><div class="flex justify-between items-start"><span class="text-[10px] font-black">${m.date}</span><span class="text-[9px] px-2 py-0.5 rounded bg-slate-100 font-bold">${categorizeMile(m.content)}</span></div><p class="text-xs font-bold">${m.content}</p><div class="flex justify-between pt-2 border-t"><p class="text-xs font-bold text-slate-800">${m.total.toLocaleString()}</p><p class="text-sm font-black ${m.gain<0?'text-slate-400':'text-red-500'}">${m.gain.toLocaleString()} mile</p></div></div>`).join('') : `<p class="text-center text-xs font-bold text-slate-400 py-6">該当するマイル明細がありません</p>`);
         }
 
         function updateLSPTab(data, catFilter) {
-            const allTime = appData.lsp.reduce((g, d) => { g[d.ui_category] = (g[d.ui_category]||0)+d.points; return g; }, {});
-            renderPieChart('detailPieChart', allTime);
-            safeSetText('totalEarnedValue', '累計: ' + appData.stats.lsp.toLocaleString() + " LSP");
-            renderStackedBar('detailLineChart', data, 'points');
-            const trendData = getFilteredTrendData(appData.lsp, document.getElementById('lspTrendPeriod').value);
-            renderMixedTrendChart('lspMixedChart', trendData, 'points', 'total', '獲得', '累計', '#1e293b', '#3b82f6', false);
+            const activeCategory = catFilter && catFilter !== 'all' ? catFilter : null;
+            const baseList = getDetailDateFilteredList(appData.lsp);
+            const breakdown = baseList.reduce((g, d) => { g[d.ui_category] = (g[d.ui_category]||0)+d.points; return g; }, {});
+            renderPieChart('detailPieChart', breakdown, (label) => {
+                applyDetailCategoryFilter('lsp', label);
+            }, activeCategory);
+            setDetailCategoryUi(catFilter);
+            safeSetText('detailPieTitle', activeCategory ? `LSP内訳（${activeCategory} 選択中）` : 'LSP内訳');
+            safeSetText('detailLineTitle', activeCategory ? `${activeCategory} の月別実績` : 'LSP月別実績');
+            const selectedEarned = data.reduce((sum, l) => sum + (l.points || 0), 0);
+            safeSetText('totalEarnedValue', activeCategory ? `${activeCategory}: ${selectedEarned.toLocaleString()} LSP` : '累計: ' + appData.stats.lsp.toLocaleString() + " LSP");
+            renderStackedBar('detailLineChart', activeCategory ? data : baseList, 'points');
+            const trendSource = activeCategory ? appData.lsp.filter(l => l.ui_category === activeCategory) : appData.lsp;
+            const trendData = getFilteredTrendData(trendSource, document.getElementById('lspTrendPeriod').value);
+            if (activeCategory) renderCategoryMonthlyTrendChart('lspMixedChart', trendData, 'points', `${activeCategory} 獲得`, `${activeCategory} 累計`, '#1e293b', '#3b82f6');
+            else renderMixedTrendChart('lspMixedChart', trendData, 'points', 'total', '獲得', '累計', '#1e293b', '#3b82f6', false);
+            const lspTrendTitle = document.querySelector('#lspTrendSection h3');
+            if (lspTrendTitle) lspTrendTitle.innerText = activeCategory ? `${activeCategory} 推移` : 'LSP累積推移';
             const sel = document.getElementById('categorySelector');
-            if (sel) { const cats = ['all', ...new Set(appData.lsp.map(m => m.ui_category))].sort(); sel.innerHTML = cats.map(c => `<option value="${c}" ${c === catFilter ? 'selected' : ''}>${c === 'all' ? '全ての種類' : c}</option>`).join(''); }
+            if (sel) { const cats = ['all', ...getDetailCategoryOptions('lsp')]; sel.innerHTML = cats.map(c => `<option value="${c}" ${c === (activeCategory || 'all') ? 'selected' : ''}>${c === 'all' ? '全ての種類' : c}</option>`).join(''); }
             const sorted = [...data].sort((a,b) => flightSortOrder === 'asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
             safeSetHTML('table-head', `<tr><th class="p-3">日付</th><th class="p-3">カテゴリ</th><th class="p-3">内容</th><th class="p-3 text-right">獲得</th><th class="p-3 text-right">累計</th></tr>`);
-            safeSetHTML('table-body', sorted.map(l => `<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 font-bold text-xs">${l.date}</td><td class="p-3 text-[10px] font-bold text-slate-500">${l.ui_category}</td><td class="p-3 font-bold text-xs text-slate-700">${l.content}</td><td class="p-3 text-right text-blue-500 font-black text-xs">+${l.points.toLocaleString()}</td><td class="p-3 text-right font-bold text-xs text-slate-800">${l.total.toLocaleString()}</td></tr>`).join(''));
-            safeSetHTML('mobile-details-list', sorted.map(l => `<div class="details-card"><div class="flex justify-between items-start"><span class="text-[10px] font-black">${l.date}</span><span class="text-[9px] px-2 py-0.5 rounded bg-slate-100 font-bold">${l.ui_category}</span></div><p class="text-xs font-bold">${l.content}</p><div class="flex justify-between pt-2 border-t"><p class="text-xs font-bold text-slate-800">${l.total.toLocaleString()}</p><p class="text-sm font-black text-blue-500">+${l.points.toLocaleString()} LSP</p></div></div>`).join(''));
+            safeSetHTML('table-body', sorted.length ? sorted.map(l => `<tr class="border-b hover:bg-slate-50 transition-colors"><td class="p-3 font-bold text-xs">${l.date}</td><td class="p-3 text-[10px] font-bold text-slate-500">${l.ui_category}</td><td class="p-3 font-bold text-xs text-slate-700">${l.content}</td><td class="p-3 text-right text-blue-500 font-black text-xs">+${l.points.toLocaleString()}</td><td class="p-3 text-right font-bold text-xs text-slate-800">${l.total.toLocaleString()}</td></tr>`).join('') : `<tr><td colspan="5" class="p-6 text-center text-xs font-bold text-slate-400">該当するLSP明細がありません</td></tr>`);
+            safeSetHTML('mobile-details-list', sorted.length ? sorted.map(l => `<div class="details-card"><div class="flex justify-between items-start"><span class="text-[10px] font-black">${l.date}</span><span class="text-[9px] px-2 py-0.5 rounded bg-slate-100 font-bold">${l.ui_category}</span></div><p class="text-xs font-bold">${l.content}</p><div class="flex justify-between pt-2 border-t"><p class="text-xs font-bold text-slate-800">${l.total.toLocaleString()}</p><p class="text-sm font-black text-blue-500">+${l.points.toLocaleString()} LSP</p></div></div>`).join('') : `<p class="text-center text-xs font-bold text-slate-400 py-6">該当するLSP明細がありません</p>`);
         }
 
         // フライトマップ用：航空会社カテゴリの判定
@@ -1116,12 +1757,14 @@
             if (airportFilter !== 'all') {
                 finalFiltered = finalFiltered.filter(p => {
                     const route = (p.from + p.to).toUpperCase();
-                    const isIntl = ['TPE', '台北', 'HNL', 'ホノルル'].some(a => p.from.includes(a) || p.to.includes(a));
-                    if (airportFilter === 'hnd') return route.includes('HND') || route.includes('羽田');
-                    if (airportFilter === 'oka') return route.includes('OKA') || route.includes('那覇');
-                    if (airportFilter === 'fuk') return route.includes('FUK') || route.includes('福岡');
-                    if (airportFilter === 'itm') return route.includes('ITM') || route.includes('伊丹');
-                    if (airportFilter === 'nrt') return route.includes('NRT') || route.includes('成田');
+                    const fromCode = normalizeAirportName(p.from);
+                    const toCode = normalizeAirportName(p.to);
+                    const isIntl = isInternationalRoute(p.from, p.to);
+                    if (airportFilter === 'hnd') return fromCode === 'HND' || toCode === 'HND';
+                    if (airportFilter === 'oka') return fromCode === 'OKA' || toCode === 'OKA';
+                    if (airportFilter === 'fuk') return fromCode === 'FUK' || toCode === 'FUK';
+                    if (airportFilter === 'itm') return fromCode === 'ITM' || toCode === 'ITM';
+                    if (airportFilter === 'nrt') return fromCode === 'NRT' || toCode === 'NRT';
                     if (airportFilter === 'intl') return isIntl;
                     if (airportFilter === 'dom') return !isIntl;
                     return true;
@@ -1166,6 +1809,207 @@
             return points;
         }
 
+
+        function escapeHtml(str) {
+            return String(str ?? '').replace(/[&<>'"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[ch]));
+        }
+
+        function escapeJsString(str) {
+            return String(str ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+        }
+
+        function getRouteCode(name) {
+            return normalizeAirportName(name || '不明');
+        }
+
+        function makeRoutePairKey(from, to) {
+            const a = getRouteCode(from);
+            const b = getRouteCode(to);
+            return [a, b].sort().join('↔');
+        }
+
+        function getRouteAnalysisPlans() {
+            const period = document.getElementById('routeAnalysisPeriod')?.value || 'all';
+            const completed = appData.plans.filter(p => p.status === '済');
+            const now = new Date();
+            const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+            const endStr = localNow.toISOString().split('T')[0];
+            let label = '全期間';
+            let startStr = '';
+
+            if (period === 'all') {
+                label = '全期間';
+            } else if (period === 'year') {
+                startStr = `${now.getFullYear()}-01-01`;
+                label = `${now.getFullYear()}年`;
+            } else {
+                const start = new Date(now);
+                if (period === '6m') { start.setMonth(start.getMonth() - 6); label = '直近6か月'; }
+                else { start.setMonth(start.getMonth() - 3); label = '直近3か月'; }
+                const localStart = new Date(start.getTime() - start.getTimezoneOffset() * 60000);
+                startStr = localStart.toISOString().split('T')[0];
+            }
+
+            const plans = completed.filter(p => (!startStr || p.date >= startStr) && p.date <= endStr);
+            return { plans, info: { period, startStr, endStr, label } };
+        }
+
+        function buildRoutePairStats(plans) {
+            const groups = {};
+            plans.forEach(p => {
+                const fromCode = getRouteCode(p.from);
+                const toCode = getRouteCode(p.to);
+                if (!fromCode || !toCode || fromCode === toCode) return;
+
+                const [a, b] = [fromCode, toCode].sort();
+                const nameA = getAirportDisplayName(a);
+                const nameB = getAirportDisplayName(b);
+                const key = `${a}↔${b}`;
+                if (!groups[key]) {
+                    groups[key] = {
+                        key, codeA: a, codeB: b, nameA, nameB,
+                        label: `${nameA} ↔ ${nameB}`,
+                        directionA: `${nameA}→${nameB}`,
+                        directionB: `${nameB}→${nameA}`,
+                        dirA: 0, dirB: 0, total: 0, latestDate: '',
+                        flights: [], airlines: new Set(), fareTotal: 0
+                    };
+                }
+                const g = groups[key];
+                if (fromCode === a && toCode === b) g.dirA += 1;
+                else g.dirB += 1;
+                g.total += 1;
+                g.latestDate = (!g.latestDate || p.date > g.latestDate) ? p.date : g.latestDate;
+                g.flights.push(p);
+                if (p.airline) g.airlines.add(String(p.airline).toUpperCase());
+                g.fareTotal += Number(p.fare || 0);
+            });
+
+            return Object.values(groups).map(g => ({
+                ...g,
+                airlinesText: Array.from(g.airlines).sort().join(' / ') || '-',
+                avgFare: g.total > 0 ? Math.round(g.fareTotal / g.total) : 0,
+                imbalance: g.total > 0 ? Math.abs(g.dirA - g.dirB) : 0,
+                flights: g.flights.sort((a,b) => b.date.localeCompare(a.date))
+            })).sort((a,b) => b.total - a.total || b.latestDate.localeCompare(a.latestDate));
+        }
+
+        function selectRoutePair(key) {
+            selectedRouteKey = key || null;
+            updateUI();
+        }
+
+        function renderRouteRankingTable(routeStats) {
+            const disp = isRankingExpanded ? routeStats : routeStats.slice(0, 10);
+            safeSetHTML('rankingTableBody', disp.map(r => {
+                const selected = selectedRouteKey === r.key;
+                const imbalanceBadge = r.imbalance >= 3 ? '<span class="ml-2 px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-100 text-[9px] font-black">偏り</span>' : '';
+                return `
+                    <tr onclick="selectRoutePair('${escapeJsString(r.key)}')" class="cursor-pointer transition-colors ${selected ? 'bg-red-50' : 'hover:bg-slate-50'}">
+                        <td class="p-3 font-black ${selected ? 'text-red-700' : 'text-slate-700'}">${escapeHtml(r.label)}${imbalanceBadge}</td>
+                        <td class="p-3 text-right font-black text-red-600">${r.total}<span class="text-[10px] ml-1 text-slate-400">回</span></td>
+                        <td class="p-3 text-right font-bold text-slate-600"><span class="text-slate-800">${r.dirA}</span><span class="text-slate-300 mx-1">/</span><span class="text-slate-800">${r.dirB}</span></td>
+                        <td class="p-3 text-right font-bold text-slate-500">${r.latestDate || '-'}</td>
+                    </tr>
+                `;
+            }).join('') || '<tr><td colspan="4" class="p-4 text-center text-slate-400 italic">実績データがありません</td></tr>');
+        }
+
+        function renderSelectedRouteDetail(routeStats, info) {
+            const target = routeStats.find(r => r.key === selectedRouteKey) || routeStats[0];
+            if (!target) {
+                safeSetHTML('routeSelectedDetail', '<p class="text-xs text-slate-400 italic">区間データがありません。</p>');
+                return;
+            }
+            const isSelected = selectedRouteKey === target.key;
+            const latestFlights = target.flights.slice(0, 6).map(f => `
+                <div class="flex justify-between gap-3 py-1.5 border-b border-white/70 last:border-0">
+                    <span class="font-bold text-slate-700">${escapeHtml(f.date)}</span>
+                    <span class="text-slate-500">${escapeHtml(getAirportDisplayName(f.from))}→${escapeHtml(getAirportDisplayName(f.to))}</span>
+                    <span class="font-mono text-slate-400">${escapeHtml((f.airline || '') + (f.flightNo || ''))}</span>
+                </div>
+            `).join('');
+            const balanceNote = target.imbalance === 0 ? '往復バランス良好' : `${target.imbalance}回の方向差あり`;
+            safeSetHTML('routeSelectedDetail', `
+                <div class="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                        <p class="text-[9px] font-black text-slate-400 uppercase">${isSelected ? '選択中の区間' : '最多区間'}</p>
+                        <h4 class="text-lg font-black text-slate-900 mt-0.5">${escapeHtml(target.label)}</h4>
+                    </div>
+                    <span class="px-2 py-1 rounded-full ${isSelected ? 'bg-red-600 text-white' : 'bg-slate-200 text-slate-600'} text-[10px] font-black">${info.label}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <div class="rounded-xl bg-white p-3 border border-slate-100"><p class="text-[9px] font-black text-slate-400 uppercase">搭乗回数</p><p class="text-2xl font-black text-red-600">${target.total}<span class="text-xs ml-1 text-slate-400">回</span></p></div>
+                    <div class="rounded-xl bg-white p-3 border border-slate-100"><p class="text-[9px] font-black text-slate-400 uppercase">最新搭乗</p><p class="text-sm font-black text-slate-800 mt-1">${target.latestDate || '-'}</p></div>
+                    <div class="rounded-xl bg-white p-3 border border-slate-100"><p class="text-[9px] font-black text-slate-400 uppercase">方向内訳</p><p class="text-sm font-black text-slate-800 mt-1">${target.directionA}: ${target.dirA}<br>${target.directionB}: ${target.dirB}</p></div>
+                    <div class="rounded-xl bg-white p-3 border border-slate-100"><p class="text-[9px] font-black text-slate-400 uppercase">往復バランス</p><p class="text-sm font-black ${target.imbalance >= 3 ? 'text-amber-600' : 'text-emerald-600'} mt-1">${balanceNote}</p></div>
+                </div>
+                <div class="text-[10px] font-bold text-slate-500 mb-2">航空会社：${escapeHtml(target.airlinesText)} / 平均運賃：${target.avgFare > 0 ? '¥' + target.avgFare.toLocaleString() : '-'}</div>
+                <div class="rounded-xl bg-white border border-slate-100 p-3 max-h-[170px] overflow-y-auto text-[10px]">
+                    ${latestFlights || '<p class="text-slate-400 italic">履歴がありません</p>'}
+                </div>
+            `);
+        }
+
+        function renderRouteHeatmap(plans, routeStats) {
+            const limit = Number(document.getElementById('routeHeatmapLimit')?.value || 8);
+            const airportCounts = {};
+            const directed = {};
+            plans.forEach(p => {
+                const from = getRouteCode(p.from);
+                const to = getRouteCode(p.to);
+                if (!from || !to || from === to) return;
+                airportCounts[from] = (airportCounts[from] || 0) + 1;
+                airportCounts[to] = (airportCounts[to] || 0) + 1;
+                directed[`${from}->${to}`] = (directed[`${from}->${to}`] || 0) + 1;
+            });
+
+            const selectedRoute = selectedRouteKey ? routeStats.find(r => r.key === selectedRouteKey) : null;
+            const airports = Object.entries(airportCounts).sort((a,b) => b[1] - a[1]).slice(0, limit).map(e => e[0]);
+            let selectedRouteAdded = false;
+
+            // ヒートマップは上位N空港表示だが、棒グラフや地図で選択した区間は必ず表示対象に追加する。
+            // これにより「沖縄↔沖永良部」のような上位N外の区間でも、選択時にセルを確認できる。
+            if (selectedRoute) {
+                [selectedRoute.codeA, selectedRoute.codeB].forEach(code => {
+                    if (code && !airports.includes(code)) {
+                        airports.push(code);
+                        selectedRouteAdded = true;
+                    }
+                });
+            }
+
+            const maxCount = Math.max(1, ...Object.values(directed));
+            if (airports.length === 0) {
+                safeSetHTML('routeHeatmapContainer', '<p class="text-xs text-slate-400 italic">ヒートマップ対象データがありません。</p>');
+                return;
+            }
+            const header = `<tr><th class="p-1 text-[9px] text-slate-400 text-right">出発＼到着</th>${airports.map(a => {
+                const selectedAirport = selectedRoute && (a === selectedRoute.codeA || a === selectedRoute.codeB);
+                return `<th class="p-1 text-[9px] font-black text-center ${selectedAirport ? 'bg-slate-900 text-white' : 'text-slate-500'}" title="${escapeHtml(getAirportDisplayNameWithCode(a))}">${escapeHtml(getAirportDisplayName(a))}</th>`;
+            }).join('')}</tr>`;
+            const rows = airports.map(from => {
+                const selectedRowAirport = selectedRoute && (from === selectedRoute.codeA || from === selectedRoute.codeB);
+                const cells = airports.map(to => {
+                    if (from === to) return '<td class="p-1 text-center text-slate-200 bg-slate-50">-</td>';
+                    const count = directed[`${from}->${to}`] || 0;
+                    const opacity = count === 0 ? 0 : Math.min(0.12 + (count / maxCount) * 0.78, 0.9);
+                    const pairKey = [from, to].sort().join('↔');
+                    const selected = selectedRouteKey === pairKey;
+                    const bg = count === 0 ? '#ffffff' : `rgba(225,0,9,${opacity})`;
+                    const color = opacity > 0.48 ? '#ffffff' : '#334155';
+                    const selectedClass = selected ? 'ring-2 ring-slate-900 shadow-inner' : '';
+                    const emptySelectedClass = selected && count === 0 ? 'bg-slate-100' : '';
+                    return `<td onclick="selectRoutePair('${escapeJsString(pairKey)}')" title="${escapeHtml(getAirportDisplayNameWithCode(from))}→${escapeHtml(getAirportDisplayNameWithCode(to))}: ${count}回" class="p-1 text-center text-[10px] font-black cursor-pointer border border-white ${selectedClass} ${emptySelectedClass}" style="background:${bg}; color:${color}; min-width:28px;">${count || ''}</td>`;
+                }).join('');
+                return `<tr><th class="p-1 text-[9px] font-black text-right ${selectedRowAirport ? 'bg-slate-900 text-white' : 'text-slate-500'}" title="${escapeHtml(getAirportDisplayNameWithCode(from))}">${escapeHtml(getAirportDisplayName(from))}</th>${cells}</tr>`;
+            }).join('');
+            const note = selectedRouteAdded ? '<p class="mt-2 text-[9px] font-bold text-amber-600">※選択区間が上位空港外のため、一時的に行・列へ追加表示しています。</p>' : '';
+            safeSetHTML('routeHeatmapContainer', `<table class="w-full border-collapse text-xs">${header}${rows}</table>${note}`);
+            const top = routeStats[0];
+            safeSetText('routeHeatmapLegend', selectedRouteAdded ? '選択区間を追加表示中' : (top ? `最大: ${top.label} ${top.total}回` : '濃いほど搭乗数が多い'));
+        }
+
         function updateFlightsTab(data, statusFilter) {
             const sVal = document.getElementById('chartFilterStart')?.value || '';
             const eVal = document.getElementById('chartFilterEnd')?.value || '';
@@ -1178,24 +2022,15 @@
             safeSetText('stat-planned-flights-detail', upcoming.length);
             safeSetHTML('flightCards', upcoming.slice(0, 10).map(p => `<div class="bg-red-50 border border-red-100 p-3 rounded-xl min-w-[180px] shadow-sm"><p class="text-[10px] font-bold text-red-500">${p.date} ${getDayOfWeek(p.date)}</p><p class="text-sm font-black text-slate-800 leading-tight">${p.from} → ${p.to}</p><p class="text-[9px] text-slate-400 font-bold">${p.airline}${p.flightNo} ${p.depTime}</p></div>`).join('') || '<p class="text-xs text-slate-400 italic">直近の搭乗予定はありません</p>');
             
-            const routeStats = {}; 
-            allPlans.forEach(p => { 
-                if(p.status === '済'){ 
-                    const r = `${p.from} → ${p.to}`; 
-                    routeStats[r] = (routeStats[r] || 0) + 1; 
-                }
-            });
-            const routeEntries = Object.entries(routeStats).sort((a,b)=>b[1]-a[1]);
-            renderRankingBarChartCombined('rankingChartCombined', routeEntries);
-            
-            // 搭乗履歴テーブルの更新
-            const dispEntries = isRankingExpanded ? routeEntries : routeEntries.slice(0, 10);
-            safeSetHTML('rankingTableBody', dispEntries.map(e => `
-                <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="p-3 font-bold text-slate-700">${e[0]}</td>
-                    <td class="p-3 text-right font-black text-red-600">${e[1]}<span class="text-[10px] ml-1 text-slate-400">回</span></td>
-                </tr>
-            `).join('') || '<tr><td colspan="2" class="p-4 text-center text-slate-400 italic">実績データがありません</td></tr>');
+            // 区間分析: 往復合算ランキング・ヒートマップ・地図連動
+            const routeAnalysis = getRouteAnalysisPlans();
+            const routeStats = buildRoutePairStats(routeAnalysis.plans);
+            if (selectedRouteKey && !routeStats.some(r => r.key === selectedRouteKey)) selectedRouteKey = null;
+            renderRankingBarChartCombined('rankingChartCombined', routeStats);
+            renderRouteRankingTable(routeStats);
+            renderSelectedRouteDetail(routeStats, routeAnalysis.info);
+            renderRouteHeatmap(routeAnalysis.plans, routeStats);
+            safeSetText('routeRankingSubTitle', `${routeAnalysis.info.label}・往復合算・地図連動`);
             
             const sorted = [...data].sort((a,b) => flightSortOrder === 'asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
             const getSortIcon = (key) => flightSortKey === key ? (flightSortOrder === 'asc' ? ' <i class="fa-solid fa-sort-up"></i>' : ' <i class="fa-solid fa-sort-down"></i>') : ' <i class="fa-solid fa-sort text-slate-200"></i>';
@@ -1212,18 +2047,21 @@
         function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
         const chartOptions = (lp = 'right') => ({ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: lp, labels: { font: { size: 9, weight: 'bold' }, boxWidth: 10 } } } });
 
-        function renderMixedChart(id, labels, fop, fl) {
+        function renderMixedChart(id, labels, fop, fl, onMonthClick = null, selectedIndex = -1) {
             const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
+            const barColors = labels.map((_, i) => i === selectedIndex ? '#E10009' : '#1e293b');
             charts[id] = new Chart(ctx, { 
                 data: { 
                     labels, 
                     datasets: [
-                        { type: 'line', label: '累計FOP', data: fop, borderColor: '#E10009', borderWidth: 2, fill: true, backgroundColor: 'rgba(225,0,9,0.05)', tension: 0.1, yAxisID: 'y' }, 
-                        { type: 'bar', label: '累計加算対象搭乗回数', data: fl, backgroundColor: '#1e293b', borderRadius: 4, yAxisID: 'y1' }
+                        { type: 'line', label: '累計FOP', data: fop, borderColor: '#E10009', borderWidth: 2, fill: true, backgroundColor: 'rgba(225,0,9,0.05)', tension: 0.1, pointRadius: labels.map((_, i) => i === selectedIndex ? 5 : 2), pointBackgroundColor: labels.map((_, i) => i === selectedIndex ? '#0f172a' : '#E10009'), yAxisID: 'y' }, 
+                        { type: 'bar', label: '累計加算対象搭乗回数', data: fl, backgroundColor: barColors, borderRadius: 4, yAxisID: 'y1' }
                     ] 
                 }, 
                 options: { 
                     ...chartOptions(window.innerWidth < 768?'bottom':'right'), 
+                    onClick: (_, elements) => { if (onMonthClick && elements && elements.length) onMonthClick(elements[0].index); },
+                    plugins: { ...(chartOptions(window.innerWidth < 768?'bottom':'right').plugins || {}), tooltip: { callbacks: { afterBody: () => ['クリックで月次ドリルダウン'] } } },
                     scales: { 
                         y: { beginAtZero: true, title: { display: true, text: 'FOP' } }, 
                         y1: { position: 'right', beginAtZero: true, grid: { display: false }, title: { display: true, text: '回数' } } 
@@ -1232,19 +2070,24 @@
             });
         }
 
-        function renderPieChart(id, groups) {
+        function renderPieChart(id, groups, onSliceClick = null, selectedLabel = null) {
             const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
             const labels = Object.keys(groups).sort((a,b)=>groups[b]-groups[a]);
-            charts[id] = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data: labels.map(l=>groups[l]), backgroundColor: ['#E10009', '#1e293b', '#10b981', '#3b82f6', '#f59e0b', '#db2777', '#8b5cf6', '#94a3b8'], borderWidth: 0 }] }, options: chartOptions(window.innerWidth < 768?'bottom':'right') });
+            const opts = chartOptions(window.innerWidth < 768?'bottom':'right');
+            opts.onClick = (_, elements) => { if (onSliceClick && elements && elements.length) onSliceClick(labels[elements[0].index]); };
+            if (onSliceClick) opts.plugins.tooltip = { callbacks: { afterBody: () => ['クリックで該当カテゴリを選択'] } };
+            const colors = ['#E10009', '#1e293b', '#10b981', '#3b82f6', '#f59e0b', '#db2777', '#8b5cf6', '#94a3b8'];
+            charts[id] = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data: labels.map(l=>groups[l]), backgroundColor: labels.map((_, i) => colors[i % colors.length]), borderWidth: labels.map(l => l === selectedLabel ? 3 : 0), borderColor: labels.map(l => l === selectedLabel ? '#0f172a' : 'transparent'), offset: labels.map(l => l === selectedLabel ? 10 : 0) }] }, options: opts });
         }
 
         function renderStackedBar(id, list, key) {
             const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
             const months = [...new Set(list.map(d => d.date.substring(0, 7)))].sort();
-            const cats = [...new Set(list.map(d => categorizeMile(d.content)))];
-            const sortedCats = cats.map(c => ({ name: c, total: list.filter(d=>categorizeMile(d.content)===c).reduce((s,d)=>s+Math.abs(d[key]),0) })).sort((a,b)=>b.total-a.total).map(c=>c.name);
+            const catFn = currentTab === 'lsp' ? (d) => d.ui_category : (d) => categorizeMile(d.content);
+            const cats = [...new Set(list.map(d => catFn(d)))];
+            const sortedCats = cats.map(c => ({ name: c, total: list.filter(d=>catFn(d)===c).reduce((s,d)=>s+Math.abs(d[key] || 0),0) })).sort((a,b)=>b.total-a.total).map(c=>c.name);
             const colors = ['#E10009', '#1e293b', '#10b981', '#3b82f6', '#f59e0b', '#db2777', '#8b5cf6', '#94a3b8'];
-            charts[id] = new Chart(ctx, { type: 'bar', data: { labels: months, datasets: sortedCats.map((c, i) => ({ label: c, backgroundColor: colors[i % colors.length], data: months.map(m => list.filter(d => d.date.substring(0, 7) === m && categorizeMile(d.content) === c).reduce((s, d) => s + Math.abs(d[key]), 0)), borderRadius: 2 })) }, options: { ...chartOptions(window.innerWidth < 768?'bottom':'right'), scales: { x: { stacked: true }, y: { stacked: true } } } });
+            charts[id] = new Chart(ctx, { type: 'bar', data: { labels: months, datasets: sortedCats.map((c, i) => ({ label: c, backgroundColor: colors[i % colors.length], data: months.map(m => list.filter(d => d.date.substring(0, 7) === m && catFn(d) === c).reduce((s, d) => s + Math.abs(d[key] || 0), 0)), borderRadius: 2 })) }, options: { ...chartOptions(window.innerWidth < 768?'bottom':'right'), onClick: (_, elements) => { if (elements && elements.length) { const clickedCat = sortedCats[elements[0].datasetIndex]; if (clickedCat) applyDetailCategoryFilter(currentTab, clickedCat); } }, plugins: { ...(chartOptions(window.innerWidth < 768?'bottom':'right').plugins || {}), tooltip: { callbacks: { afterBody: () => ['クリックでカテゴリを選択'] } } }, scales: { x: { stacked: true }, y: { stacked: true } } } });
         }
 
         function renderMixedTrendChart(id, list, bK, lK, bL, lL, bC, lO, startZero = false) {
@@ -1274,7 +2117,7 @@
                 const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
                 months.push(d.toISOString().substring(0, 7));
             }
-            charts[id] = new Chart(ctx, { type: 'bar', data: { labels: months, datasets: [{ label: '済', backgroundColor: '#1e293b', data: months.map(m => list.filter(d => d.date.startsWith(m) && d.status === '済').length) }, { label: '予定', backgroundColor: '#E10009', data: months.map(m => list.filter(d => d.date.startsWith(m) && d.status !== '済').length) }] }, options: { ...chartOptions('bottom'), scales: { x: { stacked: true }, y: { stacked: true, ticks: { stepSize: 1 } } } } });
+            charts[id] = new Chart(ctx, { type: 'bar', data: { labels: months, datasets: [{ label: '済', backgroundColor: '#1e293b', data: months.map(m => list.filter(d => d.date.startsWith(m) && d.status === '済').length) }, { label: '予定', backgroundColor: '#E10009', data: months.map(m => list.filter(d => d.date.startsWith(m) && d.status !== '済').length) }] }, options: { ...chartOptions('bottom'), onClick: (_, elements) => { if (elements && elements.length) { const m = months[elements[0].index]; setDetailDateRange(m); const monthSel = document.getElementById('monthSelector'); if (monthSel) { monthSel.classList.remove('hidden'); monthSel.value = m; } updateUI(); } }, plugins: { ...(chartOptions('bottom').plugins || {}), tooltip: { callbacks: { afterBody: () => ['クリックで対象月に絞り込み'] } } }, scales: { x: { stacked: true }, y: { stacked: true, ticks: { stepSize: 1 } } } } });
         }
 
         function renderRankingBarChartCombined(id, data) {
@@ -1282,8 +2125,45 @@
             const container = document.getElementById('rankingChartContainer');
             if (!container) return;
             const disp = isRankingExpanded ? data : data.slice(0, 8);
-            container.style.height = isRankingExpanded ? Math.max(256, disp.length * 40) + "px" : '256px';
-            charts[id] = new Chart(ctx, { type: 'bar', data: { labels: disp.map(d => d[0]), datasets: [{ label: '搭乗実績', data: disp.map(d => d[1]), backgroundColor: '#E10009', borderRadius: 4, barThickness: 20 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } }, y: { ticks: { font: { size: 10, weight: 'bold' } } } } } });
+            container.style.height = isRankingExpanded ? Math.max(320, disp.length * 46) + "px" : '320px';
+            const dirAColors = disp.map(d => selectedRouteKey === d.key ? '#0f172a' : '#E10009');
+            const dirBColors = disp.map(d => selectedRouteKey === d.key ? '#475569' : '#fca5a5');
+            charts[id] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: disp.map(d => d.label),
+                    datasets: [
+                        { label: '正方向', data: disp.map(d => d.dirA), backgroundColor: dirAColors, borderRadius: 4, barThickness: 20, stack: 'routes' },
+                        { label: '逆方向', data: disp.map(d => d.dirB), backgroundColor: dirBColors, borderRadius: 4, barThickness: 20, stack: 'routes' }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    onClick: (_, elements) => { if (elements && elements.length) selectRoutePair(disp[elements[0].index].key); },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { size: 10, weight: 'bold' }, boxWidth: 10 } },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => disp[items[0].dataIndex]?.label || '',
+                                label: (ctx) => {
+                                    const r = disp[ctx.dataIndex];
+                                    if (!r) return '';
+                                    const direction = ctx.datasetIndex === 0 ? r.directionA : r.directionB;
+                                    return `${direction}: ${ctx.parsed.x}回`;
+                                },
+                                afterBody: (items) => {
+                                    const r = disp[items[0].dataIndex];
+                                    return r ? [`合計: ${r.total}回`, `最新: ${r.latestDate || '-'}`, `クリックで地図連動`] : [];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { beginAtZero: true, stacked: true, ticks: { stepSize: 1 }, grid: { color: '#f1f5f9' } },
+                        y: { stacked: true, ticks: { font: { size: 10, weight: 'bold' } }, grid: { display: false } }
+                    }
+                }
+            });
         }
 
         // フライトマップの描画処理（集約・太さ/濃淡・曲線・ホバー連動・ツールチップ追加）
@@ -1300,6 +2180,7 @@
             
             let missingAirports = new Set();
             let routeGroups = {};
+            let selectedRouteLatLngs = [];
             
             const categoryColors = {
                 'JAL': '#E10009',
@@ -1326,6 +2207,7 @@
                 const normFrom = normalizeAirportName(p.from);
                 const normTo = normalizeAirportName(p.to);
                 const cat = getAirlineCategory(p.airline);
+                const pairKey = [normFrom, normTo].sort().join('↔');
                 
                 const routeKey = `${normFrom}-${normTo}-${cat}`;
                 
@@ -1333,6 +2215,11 @@
                     routeGroups[routeKey] = {
                         from: p.from, 
                         to: p.to,
+                        fromCode: normFrom,
+                        toCode: normTo,
+                        fromDisplay: getAirportDisplayName(p.from),
+                        toDisplay: getAirportDisplayName(p.to),
+                        pairKey,
                         fromCoords, 
                         toCoords,
                         airlineCat: cat,
@@ -1346,40 +2233,52 @@
                 const count = route.flights.length;
                 const catName = categoryNames[route.airlineCat];
                 const color = categoryColors[route.airlineCat];
+                const isSelectedRoute = selectedRouteKey && route.pairKey === selectedRouteKey;
 
                 const baseWeight = Math.min(2 + Math.log2(count + 1), 8);
                 const baseOpacity = Math.min(0.35 + count * 0.05, 0.9);
+                const displayWeight = isSelectedRoute ? baseWeight + 4 : baseWeight;
+                const displayOpacity = isSelectedRoute ? 1.0 : baseOpacity;
+                const displayColor = isSelectedRoute ? '#0f172a' : color;
                 
                 const latlngs = getCurvePoints(route.fromCoords, route.toCoords);
+                if (isSelectedRoute) selectedRouteLatLngs.push(...latlngs);
 
                 const polyline = L.polyline(latlngs, {
-                    color: color, 
-                    weight: baseWeight, 
-                    opacity: baseOpacity
+                    color: displayColor, 
+                    weight: displayWeight, 
+                    opacity: displayOpacity,
+                    dashArray: isSelectedRoute ? null : undefined
                 }).addTo(flightLayerGroup);
                 
                 polyline.on('mouseover', function (e) {
                     const layer = e.target;
-                    layer.setStyle({ weight: baseWeight + 2, opacity: 1.0 });
+                    layer.setStyle({ weight: displayWeight + 2, opacity: 1.0 });
                     layer.bringToFront();
                 });
                 polyline.on('mouseout', function (e) {
                     const layer = e.target;
-                    layer.setStyle({ weight: baseWeight, opacity: baseOpacity });
+                    layer.setStyle({ color: displayColor, weight: displayWeight, opacity: displayOpacity });
+                });
+                polyline.on('click', function () {
+                    selectedRouteKey = route.pairKey;
+                    updateUI();
                 });
                 
                 const sortedFlights = route.flights.sort((a,b) => b.date.localeCompare(a.date));
                 const latestDate = sortedFlights.length > 0 ? sortedFlights[0].date : '-';
                 
                 const majorBadge = count >= 5 ? '<span class="ml-2 inline-block px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-[9px] font-bold border border-red-200">主要区間</span>' : '';
+                const selectedBadge = isSelectedRoute ? '<span class="ml-2 inline-block px-1.5 py-0.5 bg-slate-900 text-white rounded text-[9px] font-bold">選択中</span>' : '';
                 const tooltipHtml = `
                     <div class="font-sans text-xs text-slate-800">
                         <div class="font-bold border-b pb-1 mb-1 border-slate-200">
-                            ${route.from} → ${route.to}
-                            ${majorBadge}
+                            ${route.fromDisplay} → ${route.toDisplay}
+                            ${majorBadge}${selectedBadge}
                         </div>
                         <div class="mb-0.5">搭乗回数：<span class="font-bold">${count}回</span></div>
                         <div class="mb-0.5">航空会社：<span style="color: ${color};" class="font-bold">${catName}</span></div>
+                        <div class="mb-0.5">種別：<span class="font-bold">${isInternationalRoute(route.fromCode, route.toCode) ? '国際線' : '国内線'}</span></div>
                         <div class="text-[10px] text-slate-500 mt-1">最新搭乗：${latestDate}</div>
                     </div>
                 `;
@@ -1405,11 +2304,12 @@
                 const popupContent = `
                     <div class="text-xs font-sans min-w-[200px] custom-popup">
                         <div class="font-black border-b-2 pb-2 mb-2 text-slate-800 flex justify-between items-center" style="border-color: ${color};">
-                            <span>${route.from} <i class="fa-solid fa-plane text-[10px] text-slate-300 mx-1"></i> ${route.to}</span>
+                            <span>${route.fromDisplay} <i class="fa-solid fa-plane text-[10px] text-slate-300 mx-1"></i> ${route.toDisplay}</span>
                         </div>
                         <div class="mb-2 text-[10px] text-slate-600 space-y-0.5 border-b border-slate-100 pb-2">
                             <p>航空会社：<span class="font-bold" style="color: ${color};">${catName}</span></p>
                             <p>搭乗回数：<span class="font-bold text-slate-800">${count} 回</span></p>
+                            <p>種別：${isInternationalRoute(route.fromCode, route.toCode) ? '国際線' : '国内線'}</p>
                             <p>最新搭乗日：${latestDate}</p>
                         </div>
                         <div class="max-h-[160px] overflow-y-auto pr-1">
@@ -1449,7 +2349,9 @@
             
             setTimeout(() => { 
                 flightMap.invalidateSize(); 
-                if (displayedRouteCount > 0 && flightLayerGroup.getLayers().length > 0) {
+                if (selectedRouteKey && selectedRouteLatLngs.length > 0) {
+                    flightMap.fitBounds(L.latLngBounds(selectedRouteLatLngs), { padding: [50, 50], maxZoom: 7 });
+                } else if (displayedRouteCount > 0 && flightLayerGroup.getLayers().length > 0) {
                     flightMap.fitBounds(flightLayerGroup.getBounds(), { padding: [30, 30], maxZoom: 5 });
                 } else {
                     flightMap.setView([36.2048, 138.2529], 5);
