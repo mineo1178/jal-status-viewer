@@ -260,7 +260,7 @@
                         <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-fop" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">FOP</span></div>
                     </div>
                     <div onclick="switchTab('flights')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-emerald-500 cursor-pointer">
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Yearly Flights</p>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Eligible Flights</p>
                         <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-yearly-flights" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">回</span></div>
                     </div>
                 </div>
@@ -370,7 +370,7 @@
                                 <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full" style="background-color: #8b5cf6;"></span>HAC</span>
                                 <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full" style="background-color: #64748b;"></span>その他</span>
                             </div>
-                            <span class="text-[9px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded shadow-sm">※線が太く・濃いほど搭乗回数が多い</span>
+                            <span class="text-[9px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded shadow-sm">※線が太く・濃いほど搭乗実績数が多い</span>
                         </div>
 
                         <div id="flight-map-container" class="w-full h-[320px] md:h-[420px] rounded-xl border border-slate-100 bg-slate-50 relative z-10"></div>
@@ -461,8 +461,8 @@
                                 <table class="w-full text-left border-collapse bg-white text-xs">
                                     <thead class="bg-slate-50 border-b">
                                         <tr>
-                                            <th class="p-3 font-bold text-slate-600 uppercase">区間 (搭乗履歴)</th>
-                                            <th class="p-3 font-bold text-slate-600 text-right uppercase">搭乗回数</th>
+                                            <th class="p-3 font-bold text-slate-600 uppercase">区間 (搭乗実績)</th>
+                                            <th class="p-3 font-bold text-slate-600 text-right uppercase">実搭乗数</th>
                                         </tr>
                                     </thead>
                                     <tbody id="rankingTableBody" class="divide-y divide-slate-50">
@@ -531,7 +531,7 @@
         let appData = { 
             plans: [], lsp: [], miles: [], 
             stats: { miles: 0, lsp: 0, fop: 0, yearlyFlights: 0, plannedFlights: 0 }, 
-            yearlyMonthly: { fop: Array(12).fill(0), fl: Array(12).fill(0), year: "2026" } 
+            yearlyMonthly: { fop: Array(12).fill(0), fl: Array(12).fill(0), year: String(new Date().getFullYear()) } 
         };
         let currentTab = 'dashboard';
         let charts = {};
@@ -862,6 +862,8 @@
                 const cGain = getCol(h, ['獲得マイル', '獲得']);
                 const cTotal = getCol(h, ['有効マイル', '残高', '合計マイル']);
                 const cFop = getCol(h, ['flyon', 'fly on', 'fop']);
+                // マイル管理シートの「搭乗回数」列。特典航空券など、実搭乗しても加算対象外の便はここに反映されない想定。
+                const cFlightCount = getCol(h, ['搭乗回数', '搭乗数', 'フライト回数']);
                 const cContent = getCol(h, ['内容', '詳細', '説明']);
                 
                 appData.miles = rows.slice(idx + 1).filter(r => r && (r[cDate] || r[cContent])).map((r, i) => {
@@ -870,7 +872,8 @@
                     return { 
                         _idx: i, date: d, content: r[cContent] || "", 
                         gain: safeParseInt(r[cGain]), total: safeParseInt(r[cTotal]), 
-                        fop: safeParseInt(r[cFop])
+                        fop: safeParseInt(r[cFop]),
+                        flightCount: safeParseInt(r[cFlightCount])
                     };
                 }).filter(i => i && i.date !== "");
             }
@@ -922,27 +925,32 @@
 
         function updateUI() {
             const todayStr = new Date().toISOString().split('T')[0];
-            const targetYear = "2026"; 
+            // 「今年1月から」の実績として、カレンダー年で集計する。
+            const targetYear = String(new Date().getFullYear()); 
             appData.yearlyMonthly.year = targetYear;
-            safeSetText('chart-main-title', `ステータス進捗 (${targetYear}年度実績)`);
+            safeSetText('chart-main-title', `ステータス進捗 (${targetYear}年実績)`);
 
-            // 1. 搭乗回数: 計画シートの2026年「済」をカウント
+            // 搭乗実績: 計画シートの「結果=済」。特典航空券など加算対象外の実搭乗も含める。
             const yearlyPlans = appData.plans.filter(p => p.date.startsWith(targetYear) && p.status === '済');
-            appData.stats.yearlyFlights = yearlyPlans.length;
 
-            // 2. FOP: マイル管理シートの2026年FLYONポイントの単純総和
+            // 加算対象: マイル管理シート。FOPと搭乗回数は、実搭乗ではなくJAL側の加算実績として扱う。
             const yearlyMiles = appData.miles.filter(m => m.date.startsWith(targetYear));
+            appData.stats.yearlyFlights = yearlyMiles.reduce((sum, m) => sum + (m.flightCount || 0), 0);
             appData.stats.fop = yearlyMiles.reduce((sum, m) => sum + (m.fop || 0), 0);
 
-            // 3. 年度内月次累積データの生成
+            // 年内月次累積データの生成
             const monthlyFop = Array(12).fill(0);
             const monthlyFl = Array(12).fill(0);
             let accFop = 0, accFl = 0;
 
             for (let i = 0; i < 12; i++) {
                 const mStr = `${targetYear}-${(i+1).toString().padStart(2, '0')}`;
-                const flInMonth = yearlyPlans.filter(p => p.date.startsWith(mStr)).length;
-                const fopInMonth = yearlyMiles.filter(m => m.date.startsWith(mStr)).reduce((sum, m) => sum + (m.fop || 0), 0);
+                const flInMonth = yearlyMiles
+                    .filter(m => m.date.startsWith(mStr))
+                    .reduce((sum, m) => sum + (m.flightCount || 0), 0);
+                const fopInMonth = yearlyMiles
+                    .filter(m => m.date.startsWith(mStr))
+                    .reduce((sum, m) => sum + (m.fop || 0), 0);
                 accFl += flInMonth; accFop += fopInMonth;
                 monthlyFl[i] = accFl; monthlyFop[i] = accFop;
             }
@@ -1210,8 +1218,8 @@
                 data: { 
                     labels, 
                     datasets: [
-                        { type: 'line', label: '累計FOP (2026年度)', data: fop, borderColor: '#E10009', borderWidth: 2, fill: true, backgroundColor: 'rgba(225,0,9,0.05)', tension: 0.1, yAxisID: 'y' }, 
-                        { type: 'bar', label: '累計搭乗 (2026年度)', data: fl, backgroundColor: '#1e293b', borderRadius: 4, yAxisID: 'y1' }
+                        { type: 'line', label: '累計FOP', data: fop, borderColor: '#E10009', borderWidth: 2, fill: true, backgroundColor: 'rgba(225,0,9,0.05)', tension: 0.1, yAxisID: 'y' }, 
+                        { type: 'bar', label: '累計加算対象搭乗回数', data: fl, backgroundColor: '#1e293b', borderRadius: 4, yAxisID: 'y1' }
                     ] 
                 }, 
                 options: { 
@@ -1275,7 +1283,7 @@
             if (!container) return;
             const disp = isRankingExpanded ? data : data.slice(0, 8);
             container.style.height = isRankingExpanded ? Math.max(256, disp.length * 40) + "px" : '256px';
-            charts[id] = new Chart(ctx, { type: 'bar', data: { labels: disp.map(d => d[0]), datasets: [{ label: '搭乗回数', data: disp.map(d => d[1]), backgroundColor: '#E10009', borderRadius: 4, barThickness: 20 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } }, y: { ticks: { font: { size: 10, weight: 'bold' } } } } } });
+            charts[id] = new Chart(ctx, { type: 'bar', data: { labels: disp.map(d => d[0]), datasets: [{ label: '搭乗実績', data: disp.map(d => d[1]), backgroundColor: '#E10009', borderRadius: 4, barThickness: 20 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } }, y: { ticks: { font: { size: 10, weight: 'bold' } } } } } });
         }
 
         // フライトマップの描画処理（集約・太さ/濃淡・曲線・ホバー連動・ツールチップ追加）
