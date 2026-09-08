@@ -1,6 +1,6 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
-$Source = 'C:\Users\mineo\OneDrive\20251229_LSP管理.xlsx'
+$Source = Join-Path $env:OneDrive '20251229_LSP管理.xlsx'
 $Repository = Split-Path -Parent $PSCommandPath
 $Destination = Join-Path $Repository 'data\20251229_LSP管理.xlsx'
 $SpreadsheetPath = 'data/20251229_LSP管理.xlsx'
@@ -55,12 +55,17 @@ try {
     }
 
     $temporaryDestination = "$Destination.syncing"
+    $replacementBackup = "$Destination.sync-backup"
     try {
+        if (Test-Path -LiteralPath $replacementBackup -PathType Leaf) {
+            throw "Previous replacement backup remains: $replacementBackup"
+        }
         [System.IO.File]::WriteAllBytes($temporaryDestination, $sourceBytes)
         $temporaryHash = (Get-FileHash -LiteralPath $temporaryDestination -Algorithm SHA256).Hash
         if ($temporaryHash -ne $sourceHash) { throw 'Temporary copy hash did not match the OneDrive source.' }
         if (Test-Path -LiteralPath $Destination -PathType Leaf) {
-            [System.IO.File]::Replace($temporaryDestination, $Destination, $null)
+            [System.IO.File]::Replace($temporaryDestination, $Destination, $replacementBackup)
+            Remove-Item -LiteralPath $replacementBackup -Force
         } else {
             [System.IO.File]::Move($temporaryDestination, $Destination)
         }
