@@ -13,7 +13,6 @@
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@4.20.0/lib/msal-browser.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <!-- 追加: Leaflet.js -->
@@ -293,7 +292,7 @@
                         </div>
                         <div class="flex flex-wrap items-center gap-2 text-[10px] font-bold text-slate-500">
                             <span class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">対象年：<b id="data-target-year-display" class="text-slate-800">-</b></span>
-                            <button onclick="reloadOneDrive()" class="bg-slate-900 hover:bg-slate-700 text-white px-3 py-2 rounded-xl border border-slate-900"><i class="fa-solid fa-arrows-rotate mr-1"></i>OneDriveから再読込</button>
+                            <button onclick="reloadSpreadsheet()" class="bg-slate-900 hover:bg-slate-700 text-white px-3 py-2 rounded-xl border border-slate-900"><i class="fa-solid fa-arrows-rotate mr-1"></i>Excelを再読込</button>
                             <button onclick="switchTab('settings')" class="bg-slate-900 hover:bg-slate-700 text-white px-3 py-2 rounded-xl border border-slate-900"><i class="fa-solid fa-gear mr-1"></i>設定を変更</button>
                             <span class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">最終読込：<b id="data-read-time" class="text-slate-800">-</b></span>
                             <span class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">未登録空港：<b id="data-unknown-airports" class="text-slate-800">0</b></span>
@@ -420,17 +419,14 @@
                             <div class="rounded-xl bg-slate-50 p-3 border border-slate-100">読込元：<span id="settings-data-source" class="text-slate-900">-</span></div>
                             <div class="rounded-xl bg-slate-50 p-3 border border-slate-100">Excel最終更新：<span id="settings-file-modified" class="text-slate-900">-</span></div>
                             <div class="rounded-xl bg-slate-50 p-3 border border-slate-100">最終読込：<span id="settings-read-time" class="text-slate-900">-</span></div>
-                            <div class="rounded-xl bg-slate-50 p-3 border border-slate-100">状態：<span id="settings-data-state" class="text-slate-900">未接続</span></div>
+                            <div class="rounded-xl bg-slate-50 p-3 border border-slate-100">状態：<span id="settings-data-state" class="text-slate-900">未読込</span></div>
                             <div class="rounded-xl bg-slate-50 p-3 border border-slate-100">最新日付：<span id="settings-last-dates" class="text-slate-900">-</span></div>
                             <div class="rounded-xl bg-slate-50 p-3 border border-slate-100">未登録空港：<span id="settings-airport-check" class="text-slate-900">-</span></div>
                         </div>
                         <div class="mt-4 flex flex-wrap gap-2">
-                            <button onclick="reloadOneDrive()" class="bg-slate-900 hover:bg-slate-700 text-white rounded-lg px-3 py-2 text-[10px]"><i class="fa-solid fa-arrows-rotate mr-1"></i>OneDriveから再読込</button>
-                            <button onclick="connectOneDrive()" class="bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg px-3 py-2 text-[10px]"><i class="fa-solid fa-right-to-bracket mr-1"></i>Microsoftアカウントに接続</button>
+                            <button onclick="reloadSpreadsheet()" class="bg-slate-900 hover:bg-slate-700 text-white rounded-lg px-3 py-2 text-[10px]"><i class="fa-solid fa-arrows-rotate mr-1"></i>Excelを再読込</button>
                             <label class="bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg px-3 py-2 text-[10px] cursor-pointer"><i class="fa-solid fa-file-excel mr-1"></i>ローカルExcelを選択<input id="local-excel-input" type="file" accept=".xlsx,.xls" class="hidden" onchange="loadLocalExcel(this.files[0])"></label>
                         </div>
-                        <label class="mt-4 block text-[10px] font-bold text-slate-500">Microsoft Entra Application (client) ID<input id="onedrive-client-id" type="text" class="mt-1 w-full" placeholder="アプリ登録後に入力"></label>
-                        <button onclick="saveOneDriveSettings()" class="mt-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg px-3 py-2 text-[10px]">接続設定を保存</button>
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-100">
                         <h3 class="font-black text-sm text-slate-800 flex items-center gap-2 mb-4"><i class="fa-solid fa-route text-slate-600"></i> 遷移ショートカット</h3>
@@ -867,10 +863,8 @@
         // マイル/LSP/フライトのフィルタ状態は分離する。共有すると別タブにフィルタが漏れる。
         let detailCategoryFilters = { miles: 'all', lsp: 'all', flights: 'all' };
 
-        const ONE_DRIVE_FILE_NAME = '20251229_LSP管理.xlsx';
-        const ONE_DRIVE_SETTINGS_KEY = 'jalOneDriveSettings';
-        const ONE_DRIVE_ITEM_KEY = 'jalOneDriveItem';
-        const GRAPH_SCOPES = ['Files.Read'];
+        const EXCEL_PATH = './data/20251229_LSP管理.xlsx';
+        const AUTO_SYNC_SOURCE = 'GitHub Pages / 自動同期Excel';
         const dataUtils = window.JalDataUtils;
 
         const safeSetText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
@@ -1057,12 +1051,12 @@
             const lastDates = `計画 ${getLatestDate(appData.plans)} / マイル ${getLatestDate(appData.miles)} / LSP ${getLatestDate(appData.lsp)}`;
             const airportCheck = unknown.length ? `未登録：${unknown.slice(0, 3).join('、')}${unknown.length > 3 ? ' ほか' : ''}` : '登録済み空港のみ';
             safeSetText('data-target-year-display', `${targetYear}年`);
-            safeSetText('data-source-file', appData.meta.sourceFile || 'OneDrive未接続');
+            safeSetText('data-source-file', appData.meta.sourceFile || AUTO_SYNC_SOURCE);
             safeSetText('data-read-time', formatTimestamp(appData.meta.lastReadAt));
             safeSetText('data-unknown-airports', unknown.length.toLocaleString());
             safeSetText('data-last-dates', lastDates);
             safeSetText('data-airport-check', airportCheck);
-            safeSetText('settings-data-source', appData.meta.sourceFile || 'OneDrive未接続');
+            safeSetText('settings-data-source', appData.meta.sourceFile || AUTO_SYNC_SOURCE);
             safeSetText('settings-file-modified', formatTimestamp(appData.meta.fileModifiedAt));
             safeSetText('settings-read-time', formatTimestamp(appData.meta.lastReadAt));
             safeSetText('settings-data-state', appData.meta.state || '未接続');
@@ -1077,94 +1071,20 @@
             renderDataStatus(getTargetYear());
         }
 
-        function getOneDriveSettings() {
-            try { return JSON.parse(localStorage.getItem(ONE_DRIVE_SETTINGS_KEY) || '{}'); }
-            catch (_) { return {}; }
-        }
-
-        function saveOneDriveSettings() {
-            const clientId = document.getElementById('onedrive-client-id')?.value.trim();
-            if (!clientId) { showError('Microsoft Entra Application (client) ID を入力してください。'); return; }
-            localStorage.setItem(ONE_DRIVE_SETTINGS_KEY, JSON.stringify({ clientId }));
-            appData.meta.state = 'OneDrive未接続';
-            renderDataStatus(getTargetYear());
-            showError('OneDrive接続設定を保存しました。');
-        }
-
-        function loadOneDriveSettings() {
-            const settings = getOneDriveSettings();
-            const input = document.getElementById('onedrive-client-id');
-            if (input) input.value = settings.clientId || '';
-            return settings;
-        }
-
-        function getMsalInstance() {
-            const { clientId } = getOneDriveSettings();
-            if (!clientId) throw new Error('OneDrive未接続: Microsoft Entra Application (client) ID を設定してください。');
-            if (!window.msal) throw new Error('Microsoft認証ライブラリを読み込めませんでした。');
-            return new msal.PublicClientApplication({
-                auth: { clientId, authority: 'https://login.microsoftonline.com/common/', redirectUri: window.location.origin + window.location.pathname },
-                cache: { cacheLocation: 'sessionStorage' }
-            });
-        }
-
-        async function acquireGraphToken(interactive) {
-            const instance = getMsalInstance();
-            await instance.initialize();
-            const account = instance.getAllAccounts()[0];
-            try {
-                return await instance.acquireTokenSilent({ scopes: GRAPH_SCOPES, account });
-            } catch (error) {
-                if (!interactive) throw error;
-                return instance.loginPopup({ scopes: GRAPH_SCOPES, prompt: 'select_account' });
-            }
-        }
-
-        async function connectOneDrive() {
-            try {
-                await acquireGraphToken(true);
-                appData.meta.state = 'OneDrive接続済み';
-                renderDataStatus(getTargetYear());
-                await reloadOneDrive();
-            } catch (error) {
-                console.error('OneDrive sign-in failed:', error);
-                appData.meta.state = 'OneDrive接続失敗';
-                renderDataStatus(getTargetYear());
-                showError(error.message || 'Microsoftアカウントへ接続できませんでした。');
-            }
-        }
-
-        async function getOneDriveItem(accessToken) {
-            let savedItem = {};
-            try { savedItem = JSON.parse(localStorage.getItem(ONE_DRIVE_ITEM_KEY) || '{}'); } catch (_) {}
-            const endpoint = savedItem.driveId && savedItem.itemId
-                ? `https://graph.microsoft.com/v1.0/drives/${encodeURIComponent(savedItem.driveId)}/items/${encodeURIComponent(savedItem.itemId)}`
-                : `https://graph.microsoft.com/v1.0/me/drive/root:/${encodeURIComponent(ONE_DRIVE_FILE_NAME)}:`;
-            const response = await fetch(`${endpoint}?$select=id,name,eTag,lastModifiedDateTime,parentReference,@microsoft.graph.downloadUrl`, {
-                headers: { Authorization: `Bearer ${accessToken}` }, cache: 'no-store'
-            });
-            if (!response.ok) throw new Error(response.status === 404 ? `OneDriveに「${ONE_DRIVE_FILE_NAME}」が見つかりません。` : 'OneDriveからファイル情報を取得できませんでした。');
-            const item = await response.json();
-            localStorage.setItem(ONE_DRIVE_ITEM_KEY, JSON.stringify({ driveId: item.parentReference?.driveId, itemId: item.id }));
-            return item;
-        }
-
-        async function reloadOneDrive() {
+        async function reloadSpreadsheet() {
             const overlay = document.getElementById('loading-overlay');
             if(overlay) overlay.style.display = 'flex';
             try {
-                const token = await acquireGraphToken(true);
-                const item = await getOneDriveItem(token.accessToken);
-                const response = await fetch(item['@microsoft.graph.downloadUrl'], { cache: 'no-store' });
-                if (!response.ok) throw new Error('OneDriveからExcelをダウンロードできませんでした。');
+                const response = await fetch(`${EXCEL_PATH}?v=${Date.now()}`, { cache: 'no-store' });
+                if (!response.ok) throw new Error('自動同期Excelを取得できませんでした。');
                 const buffer = await response.arrayBuffer();
-                loadWorkbook(buffer, { sourceFile: `OneDrive / ${item.name}`, fileModifiedAt: item.lastModifiedDateTime, eTag: item.eTag });
+                loadWorkbook(buffer, { sourceFile: AUTO_SYNC_SOURCE, fileModifiedAt: response.headers.get('last-modified') });
             } catch (e) { 
-                console.error('OneDrive sync failed:', e.message);
-                appData.meta.state = 'OneDriveからデータを取得できませんでした';
+                console.error('Spreadsheet reload failed:', e.message);
+                appData.meta.state = '自動同期Excelを取得できませんでした';
                 renderDataStatus(getTargetYear());
                 updateUI();
-                showError(e.message || 'OneDriveからデータを取得できませんでした。ローカルExcelを選択して読み込めます。');
+                showError(e.message || '自動同期Excelを取得できませんでした。ローカルExcelを選択して読み込めます。');
             } finally {
                 if(overlay) overlay.style.display = 'none';
             }
@@ -1180,11 +1100,11 @@
         }
 
         window.onload = async () => {
-            setGoalInputs(); loadOneDriveSettings(); populateTargetYearSelector();
-            appData.meta.state = getOneDriveSettings().clientId ? 'OneDrive未接続' : 'OneDrive未接続: 接続設定が必要です';
+            setGoalInputs(); populateTargetYearSelector();
+            appData.meta.state = '自動同期Excelを読み込み中';
             renderDataStatus(getTargetYear());
             updateUI();
-            if (getOneDriveSettings().clientId) await reloadOneDrive();
+            await reloadSpreadsheet();
         };
 
         function showError(msg) {
