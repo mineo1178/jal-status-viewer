@@ -537,6 +537,7 @@
                         </div>
 
                         <div id="flight-map-container" class="w-full h-[320px] md:h-[420px] rounded-xl border border-slate-100 bg-slate-50 relative z-10"></div>
+                        <p id="flight-map-tile-error" class="hidden mt-2 text-xs font-bold text-red-600" role="status">地図の背景を取得できません。通信状況を確認してください。</p>
                         
                         <div class="mt-2 text-right">
                             <span id="flightMapMissingLabel" class="text-[10px] font-bold text-red-500 hidden">未表示：0件（空港マスタ未登録）</span>
@@ -2516,9 +2517,16 @@
         function renderFlightMap(data, info) {
             if (!flightMap) {
                 flightMap = L.map('flight-map-container').setView([36.2048, 138.2529], 5);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                }).addTo(flightMap);
+                const tileError = document.getElementById('flight-map-tile-error');
+                const baseLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                });
+                let tileLoadFailed = false;
+                baseLayer.on('loading', () => { tileLoadFailed = false; });
+                baseLayer.on('tileerror', () => { tileLoadFailed = true; tileError?.classList.remove('hidden'); });
+                baseLayer.on('load', () => { if (!tileLoadFailed) tileError?.classList.add('hidden'); });
+                baseLayer.addTo(flightMap);
                 flightLayerGroup = L.featureGroup().addTo(flightMap);
             }
 
@@ -2708,7 +2716,7 @@
                     fillColor: active ? '#ffffff' : '#0f172a',
                     fillOpacity: active ? 1 : 0.82,
                     opacity: 1
-                }).addTo(flightLayerGroup).bindTooltip(`${airport.label} (${airport.code})`, {
+                }).addTo(flightLayerGroup).bindTooltip(`${escapeHtml(airport.label)} (${escapeHtml(airport.code)})`, {
                     direction: 'top',
                     opacity: 0.9,
                     className: 'custom-tooltip'
