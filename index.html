@@ -187,6 +187,7 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
     </style>
+    <link rel="stylesheet" href="premium.css">
 </head>
 <body class="flex flex-col md:flex-row h-screen overflow-hidden">
 
@@ -203,12 +204,12 @@
         </div>
     </div>
 
-    <aside id="sidebar" class="hidden md:flex bg-[#0f172a] text-slate-400 flex-col h-full z-50 shadow-2xl shrink-0">
+    <aside id="sidebar" class="expanded hidden md:flex bg-[#0f172a] text-slate-400 flex-col h-full z-50 shadow-2xl shrink-0">
         <div class="h-16 flex items-center px-4 border-b border-slate-800 shrink-0">
-            <button id="toggleBtn" class="text-xl hover:text-white transition-colors w-8 h-8 flex items-center justify-center">
+            <button id="toggleBtn" aria-label="サイドバーの開閉" title="サイドバーの開閉" class="text-xl hover:text-white transition-colors w-8 h-8 flex items-center justify-center">
                 <i class="fa-solid fa-bars"></i>
             </button>
-            <span class="sidebar-label ml-4 font-bold text-white text-lg tracking-tight">JAL Asset Manager</span>
+            <span class="sidebar-label ml-4 font-bold text-white text-lg tracking-tight">JAL Status<span class="brand-caption">PERSONAL DASHBOARD</span></span>
         </div>
         
         <nav class="flex-1 mt-6 space-y-2 px-3 overflow-y-auto">
@@ -244,7 +245,7 @@
                 <h2 id="tabTitle" class="text-lg md:text-xl font-extrabold text-slate-800 tracking-tight truncate">ダッシュボード</h2>
             </div>
             <div class="flex items-center gap-2 md:gap-3">
-                <button onclick="switchTab('settings')" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-black text-slate-600 hover:bg-slate-50" title="設定">
+                <button onclick="switchTab('settings')" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-black text-slate-600 hover:bg-slate-50" title="設定" aria-label="設定">
                     <i class="fa-solid fa-gear"></i><span class="hidden md:inline ml-1">設定</span>
                 </button>
                 <div class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-900 flex items-center justify-center text-white border-2 border-white shadow-md">
@@ -257,30 +258,38 @@
             
             <!-- DASHBOARD TAB -->
             <div id="tab-dashboard" class="tab-content active space-y-6 md:space-y-8">
-                <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 md:gap-6">
-                    <div onclick="openDashboardDrilldown('miles')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-[#E10009] cursor-pointer">
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">保有マイル</p>
-                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-miles" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">mile</span></div>
+                <section class="dashboard-intro" aria-label="ダッシュボード概要">
+                    <div>
+                        <p class="eyebrow">YOUR PERSONAL FLIGHT DASHBOARD</p>
+                        <h1>空の旅と、その先のステータスへ。</h1>
+                        <p class="intro-description">FOP・搭乗回数は対象年の実績、LSP・マイルは残高を表示。月を選択すると、その時点の状況を確認できます。</p>
                     </div>
-                    <div onclick="openDashboardDrilldown('lsp')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-blue-500 cursor-pointer">
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">累計LSP</p>
-                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-lsp" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">pts</span></div>
-                    </div>
-                    <div onclick="openDashboardDrilldown('flights')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-orange-500 cursor-pointer">
+                    <button onclick="switchTab('flights')" class="schedule-shortcut"><i class="fa-solid fa-plane-departure" aria-hidden="true"></i><span>搭乗予定を確認<span class="shortcut-caption">フライト管理へ</span></span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+                </section>
+                <div class="dashboard-kpis grid grid-cols-2 lg:grid-cols-6 gap-3 md:gap-6">
+                    <div onclick="openDashboardDrilldown('flights')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-orange-500 cursor-pointer">
                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">年間FOP</p>
-                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-fop" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">FOP</span></div>
+                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-fop" class="text-xl md:text-3xl font-black text-slate-800">未読込</span><span class="text-[10px] font-bold text-slate-400">FOP</span></div>
                     </div>
-                    <div onclick="openDashboardDrilldown('flights')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-slate-500 cursor-pointer">
+                    <div onclick="openDashboardDrilldown('flights')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-slate-500 cursor-pointer">
                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">実搭乗回数</p>
-                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-actual-flights" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">回</span></div>
+                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-actual-flights" class="text-xl md:text-3xl font-black text-slate-800">未読込</span><span class="text-[10px] font-bold text-slate-400">回</span></div>
                     </div>
-                    <div onclick="openDashboardDrilldown('flights')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-emerald-500 cursor-pointer">
+                    <div onclick="openDashboardDrilldown('lsp')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-blue-500 cursor-pointer">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">累計LSP</p>
+                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-lsp" class="text-xl md:text-3xl font-black text-slate-800">未読込</span><span class="text-[10px] font-bold text-slate-400">pts</span></div>
+                    </div>
+                    <div onclick="openDashboardDrilldown('miles')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-[#E10009] cursor-pointer">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">保有マイル</p>
+                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-miles" class="text-xl md:text-3xl font-black text-slate-800">未読込</span><span class="text-[10px] font-bold text-slate-400">mile</span></div>
+                    </div>
+                    <div onclick="openDashboardDrilldown('flights')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-emerald-500 cursor-pointer">
                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">加算対象搭乗回数</p>
-                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-yearly-flights" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">回</span></div>
+                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-yearly-flights" class="text-xl md:text-3xl font-black text-slate-800">未読込</span><span class="text-[10px] font-bold text-slate-400">回</span></div>
                     </div>
-                    <div onclick="openDashboardDrilldown('flights')" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-rose-500 cursor-pointer">
+                    <div onclick="openDashboardDrilldown('flights')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm stat-card border-l-rose-500 cursor-pointer">
                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">加算対象外搭乗</p>
-                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-excluded-flights" class="text-xl md:text-3xl font-black text-slate-800">0</span><span class="text-[10px] font-bold text-slate-400">回</span></div>
+                        <div class="flex items-baseline gap-1 md:gap-2"><span id="stat-excluded-flights" class="text-xl md:text-3xl font-black text-slate-800">未読込</span><span class="text-[10px] font-bold text-slate-400">回</span></div>
                     </div>
                 </div>
 
@@ -2390,7 +2399,7 @@
 
         // --- Charts ---
         function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
-        const chartOptions = (lp = 'right') => ({ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: lp, labels: { font: { size: 9, weight: 'bold' }, boxWidth: 10 } } } });
+        const chartOptions = (lp = 'right') => ({ responsive: true, maintainAspectRatio: false, layout: { padding: 8 }, plugins: { legend: { position: lp, labels: { color: '#64748B', font: { size: 11, weight: '500' }, boxWidth: 10, padding: 16 } } } });
 
         function renderMixedChart(id, labels, fop, fl, onMonthClick = null, selectedIndex = -1) {
             const ctx = document.getElementById(id).getContext('2d'); destroyChart(id);
@@ -2754,6 +2763,15 @@
                 }
             }, 100);
         }
+    </script>
+    <script>
+        // Keep the existing Leaflet instance aligned with layout and sidebar changes.
+        const flightMapResizeObserver = new ResizeObserver(entries => {
+            if (flightMap && entries.some(entry => entry.contentRect.width > 0 && entry.contentRect.height > 0)) {
+                flightMap.invalidateSize({ pan: false });
+            }
+        });
+        flightMapResizeObserver.observe(document.getElementById('flight-map-container'));
     </script>
 </body>
 </html>
